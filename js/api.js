@@ -39,7 +39,12 @@ const LAApi = (() => {
 
       if (resp.status === 401) {
         clearToken();
-        if (requiresAuth) window.location.href = 'client-login.html';
+        if (requiresAuth) {
+          const u = localStorage.getItem('la_couture_current_user');
+          const role = u ? (JSON.parse(u).role || '') : '';
+          localStorage.removeItem('la_couture_current_user');
+          window.location.href = role === 'admin' ? 'admin-login.html' : 'client-login.html';
+        }
         return { ok: false, status: 401, data: { message: 'Session expired. Please log in again.' } };
       }
 
