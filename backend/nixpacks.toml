@@ -12,7 +12,8 @@ nixPkgs = [
   "php82Extensions.tokenizer",
   "php82Extensions.fileinfo",
   "php82Extensions.openssl",
-  "composer"
+  "composer",
+  "bash"
 ]
 
 [phases.install]
@@ -20,10 +21,5 @@ cmds = [
   "composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist"
 ]
 
-[phases.build]
-cmds = [
-  "composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist"
-]
-
 [start]
-cmd = "php artisan key:generate --force && php artisan config:clear && php artisan config:cache && php artisan route:cache && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=$PORT"
+cmd = "bash /app/start.sh"
