@@ -9,7 +9,7 @@ const _isLocal = window.location.hostname === '127.0.0.1' || window.location.hos
 const _metaApi  = document.querySelector('meta[name="api-base"]')?.content;
 const API_BASE  = _isLocal
   ? 'http://127.0.0.1:8000/api'
-  : (_metaApi || 'https://la-couture-backend.up.railway.app/api');
+  : (_metaApi || 'https://la-couture-production.up.railway.app/api');
 
 const LAApi = (() => {
   function getToken() {
