@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Customer Service — L.A. Couture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-sans);background:var(--navy);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+    .cs-layout{display:flex;min-height:100vh;}
+    /* Sidebar */
+    .cs-sidebar{width:240px;min-height:100vh;background:rgba(10,9,14,0.98);border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;}
+    .cs-logo{padding:28px 20px 22px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    .cs-logo-text{font-family:var(--font-display);font-size:1.1rem;color:var(--ivory);letter-spacing:0.08em;}
+    .cs-role-badge{display:inline-block;background:rgba(40,167,69,0.15);border:1px solid rgba(40,167,69,0.3);color:#4caf50;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;padding:3px 9px;border-radius:999px;margin-top:6px;}
+    .cs-nav{flex:1;padding:16px 0;overflow-y:auto;}
+    .cs-nav-btn{width:100%;background:none;border:none;color:rgba(248,244,239,0.55);font-family:var(--font-sans);font-size:0.85rem;padding:11px 20px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:11px;transition:all 0.2s;border-left:3px solid transparent;}
+    .cs-nav-btn:hover{color:var(--ivory);background:rgba(255,255,255,0.04);}
+    .cs-nav-btn.active{color:var(--ivory);border-left-color:#4caf50;background:rgba(40,167,69,0.08);}
+    .cs-nav-btn svg{width:16px;height:16px;flex-shrink:0;opacity:0.7;}
+    .cs-sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.06);}
+    .cs-staff-name{font-size:0.8rem;color:var(--muted);margin-bottom:4px;}
+    .cs-staff-email{font-size:0.72rem;color:rgba(248,244,239,0.3);margin-bottom:14px;word-break:break-all;}
+    .clock-block{margin-bottom:12px;}
+    .clock-block #clock-date{display:block;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;}
+    .clock-block #clock-time{display:block;font-size:0.8rem;color:#4caf50;font-weight:600;margin-top:2px;}
+    .logout-btn{width:100%;padding:9px;background:rgba(255,69,69,0.1);border:1px solid rgba(255,69,69,0.2);color:#ff6b6b;border-radius:8px;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+    .logout-btn:hover{background:rgba(255,69,69,0.2);}
+    /* Main */
+    .cs-main{margin-left:240px;flex:1;padding:32px;}
+    .cs-section{display:none;}
+    .cs-section.active{display:block;}
+    .cs-section-title{font-family:var(--font-display);font-size:1.5rem;font-weight:400;color:var(--ivory);margin-bottom:24px;}
+    /* Stat cards */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:32px;}
+    .stat-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:20px;}
+    .stat-card .label{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px;}
+    .stat-card .value{font-family:var(--font-display);font-size:1.8rem;color:var(--ivory);}
+    .stat-card .value.green{color:#4caf50;}
+    .stat-card .value.gold{color:var(--gold);}
+    /* Tables */
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:0.84rem;}
+    th{text-align:left;padding:10px 12px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.07);}
+    td{padding:11px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+    tr:hover td{background:rgba(255,255,255,0.02);}
+    .empty-cell{text-align:center;color:var(--muted);padding:32px;}
+    /* Badges */
+    .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;}
+    .badge-pending{background:rgba(255,193,7,0.15);color:#ffc107;border:1px solid rgba(255,193,7,0.3);}
+    .badge-confirmed,.badge-approved,.badge-open{background:rgba(40,167,69,0.15);color:#4caf50;border:1px solid rgba(40,167,69,0.3);}
+    .badge-paid{background:rgba(33,150,243,0.15);color:#42a5f5;border:1px solid rgba(33,150,243,0.3);}
+    .badge-delivered{background:rgba(156,39,176,0.15);color:#ab47bc;border:1px solid rgba(156,39,176,0.3);}
+    .badge-cancelled,.badge-rejected,.badge-closed{background:rgba(244,67,54,0.15);color:#ef5350;border:1px solid rgba(244,67,54,0.3);}
+    .badge-in-progress{background:rgba(255,152,0,0.15);color:#ffa726;border:1px solid rgba(255,152,0,0.3);}
+    .badge-received,.badge-reviewed{background:rgba(255,255,255,0.08);color:rgba(248,244,239,0.6);border:1px solid rgba(255,255,255,0.12);}
+    .badge-responded{background:rgba(40,167,69,0.15);color:#4caf50;border:1px solid rgba(40,167,69,0.3);}
+    /* Buttons */
+    .action-btn{padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--ivory);font-size:0.78rem;cursor:pointer;transition:all 0.2s;margin-right:4px;}
+    .action-btn:hover{background:rgba(255,255,255,0.1);}
+    .action-btn.green{border-color:rgba(40,167,69,0.4);color:#4caf50;}
+    .action-btn.green:hover{background:rgba(40,167,69,0.15);}
+    .action-btn.red{border-color:rgba(244,67,54,0.4);color:#ef5350;}
+    .action-btn.red:hover{background:rgba(244,67,54,0.15);}
+    .action-btn.gold{border-color:rgba(197,155,45,0.4);color:var(--gold);}
+    .action-btn.gold:hover{background:rgba(197,155,45,0.1);}
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.open{display:flex;}
+    .modal-box{background:#13121a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+    .modal-title{font-family:var(--font-display);font-size:1.2rem;color:var(--ivory);font-weight:400;}
+    .modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;line-height:1;}
+    .modal-close:hover{color:var(--ivory);}
+    .modal-body p{margin-bottom:10px;font-size:0.88rem;line-height:1.6;}
+    .modal-body strong{color:var(--ivory);}
+    /* Product grid */
+    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:16px;}
+    .product-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;}
+    .product-card img{width:100%;height:140px;object-fit:cover;display:block;}
+    .product-card-body{padding:14px;}
+    .product-card-name{font-size:0.88rem;color:var(--ivory);margin-bottom:4px;font-weight:500;}
+    .product-card-cat{font-size:0.75rem;color:var(--muted);margin-bottom:8px;}
+    .product-card-price{color:var(--gold);font-size:0.85rem;font-weight:600;margin-bottom:10px;}
+    .product-card-actions{display:flex;gap:6px;flex-wrap:wrap;}
+    /* Form */
+    .form-group{margin-bottom:18px;}
+    .form-group label{display:block;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-family:inherit;font-size:0.88rem;outline:none;transition:border-color 0.2s;}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#4caf50;}
+    .form-group textarea{min-height:90px;resize:vertical;}
+    .form-group select option{background:#13121a;}
+    .btn-submit{padding:10px 24px;background:linear-gradient(135deg,#28a745,#1e7e34);color:#fff;border:none;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+    .btn-submit:hover{opacity:0.9;}
+    /* Msg thread */
+    .msg-thread{max-height:220px;overflow-y:auto;margin:14px 0;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px;}
+    .msg-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+    .msg-item:last-child{border-bottom:none;}
+    .msg-sender{font-size:0.78rem;color:var(--gold);font-weight:600;margin-bottom:4px;}
+    .msg-text{font-size:0.85rem;color:var(--text);line-height:1.6;}
+    .msg-time{font-size:0.7rem;color:var(--muted);margin-top:4px;}
+    /* Records */
+    .records-tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+    .rec-tab{padding:7px 18px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:none;color:var(--muted);font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+    .rec-tab.active{background:rgba(40,167,69,0.12);border-color:rgba(40,167,69,0.3);color:#4caf50;}
+    .rec-panel{display:none;}
+    .rec-panel.active{display:block;}
+    @media(max-width:768px){.cs-sidebar{transform:translateX(-100%);}.cs-main{margin-left:0;padding:16px;}}
+  </style>
+</head>
+<body>
+<div class="cs-layout">
+  <!-- Sidebar -->
+  <aside class="cs-sidebar">
+    <div class="cs-logo">
+      <div class="cs-logo-text">L.A. COUTURE</div>
+      <div class="cs-role-badge">Customer Service</div>
+    </div>
+    <nav class="cs-nav">
+      <button class="cs-nav-btn active" data-section="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </button>
+      <button class="cs-nav-btn" data-section="orders">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        Orders
+      </button>
+      <button class="cs-nav-btn" data-section="registrations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Registrations
+      </button>
+      <button class="cs-nav-btn" data-section="enquiries">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Enquiries
+      </button>
+      <button class="cs-nav-btn" data-section="contact">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Contact Forms
+      </button>
+      <button class="cs-nav-btn" data-section="collections">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Collections
+      </button>
+      <button class="cs-nav-btn" data-section="records">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Records
+      </button>
+    </nav>
+    <div class="cs-sidebar-footer">
+      <div class="cs-staff-name" id="csName">—</div>
+      <div class="cs-staff-email" id="csEmail">—</div>
+      <div class="clock-block">
+        <span id="clock-date"></span>
+        <span id="clock-time"></span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="cs-main">
+
+    <!-- OVERVIEW -->
+    <section id="overview" class="cs-section active">
+      <h2 class="cs-section-title">Dashboard Overview</h2>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="label">Total Clients</div><div class="value gold" id="statClients">—</div></div>
+        <div class="stat-card"><div class="label">Pending Approvals</div><div class="value" id="statPending">—</div></div>
+        <div class="stat-card"><div class="label">Total Orders</div><div class="value gold" id="statOrders">—</div></div>
+        <div class="stat-card"><div class="label">Pending Orders</div><div class="value" id="statPendingOrders">—</div></div>
+        <div class="stat-card"><div class="label">Open Enquiries</div><div class="value" id="statEnquiries">—</div></div>
+        <div class="stat-card"><div class="label">Contact Forms</div><div class="value" id="statContact">—</div></div>
+      </div>
+      <p style="color:var(--muted);font-size:0.85rem;">Use the sidebar to manage orders, clients, enquiries, and collections.</p>
+    </section>
+
+    <!-- ORDERS -->
+    <section id="orders" class="cs-section">
+      <h2 class="cs-section-title">All Orders</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Ref</th><th>Client</th><th>Items</th><th>Total</th>
+            <th>Status</th><th>Date</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="ordersTable"><tr><td colspan="7" class="empty-cell">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REGISTRATIONS -->
+    <section id="registrations" class="cs-section">
+      <h2 class="cs-section-title">Client Registrations</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Email</th><th>Brand Login</th>
+            <th>Phone</th><th>Status</th><th>Registered</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="regTable"><tr><td colspan="7" class="empty-cell">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ENQUIRIES -->
+    <section id="enquiries" class="cs-section">
+      <h2 class="cs-section-title">Enquiries</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Client</th><th>Subject</th><th>Status</th><th>Updated</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="enqTable"><tr><td colspan="5" class="empty-cell">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CONTACT FORMS -->
+    <section id="contact" class="cs-section">
+      <h2 class="cs-section-title">Contact Forms</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Email</th><th>Type</th><th>Status</th><th>Date</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="contactTable"><tr><td colspan="6" class="empty-cell">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- COLLECTIONS -->
+    <section id="collections" class="cs-section">
+      <h2 class="cs-section-title">Collections & Gallery</h2>
+      <button class="btn-submit" onclick="openAddProduct()" style="margin-bottom:20px;">+ Add New Item</button>
+      <div class="product-grid" id="productGrid"><p style="color:var(--muted);">Loading…</p></div>
+    </section>
+
+    <!-- RECORDS -->
+    <section id="records" class="cs-section">
+      <h2 class="cs-section-title">Complete Records</h2>
+      <div class="records-tabs">
+        <button class="rec-tab active" onclick="switchRec('rec-clients',this)">Clients</button>
+        <button class="rec-tab" onclick="switchRec('rec-orders',this)">Orders</button>
+        <button class="rec-tab" onclick="switchRec('rec-enquiries',this)">Enquiries</button>
+        <button class="rec-tab" onclick="switchRec('rec-forms',this)">Contact Forms</button>
+      </div>
+      <div id="rec-clients" class="rec-panel active"><p style="color:var(--muted);">Loading…</p></div>
+      <div id="rec-orders"  class="rec-panel"><p style="color:var(--muted);">Loading…</p></div>
+      <div id="rec-enquiries" class="rec-panel"><p style="color:var(--muted);">Loading…</p></div>
+      <div id="rec-forms"   class="rec-panel"><p style="color:var(--muted);">Loading…</p></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Action Modal -->
+<div class="modal-overlay" id="actionModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Details</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Product Form Modal -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="productModalTitle">Add Product</span>
+      <button class="modal-close" onclick="closeProductModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="productForm">
+        <input type="hidden" id="pId">
+        <div class="form-group"><label>SKU</label><input type="text" id="pSku" placeholder="e.g. P010" required></div>
+        <div class="form-group"><label>Name</label><input type="text" id="pName" required></div>
+        <div class="form-group"><label>Category</label>
+          <select id="pCat">
+            <option>Luxury Suits</option><option>Agbada & Native</option>
+            <option>Smart Casual</option><option>Formal Wear</option>
+            <option>Bespoke</option><option>Accessories</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Price (₦)</label><input type="number" id="pPrice" min="0" required></div>
+        <div class="form-group"><label>Tag (optional)</label><input type="text" id="pTag" placeholder="e.g. New, Bestseller, Limited"></div>
+        <div class="form-group"><label>Image URL / Path</label><input type="text" id="pImage" placeholder="img/product-name.jpg"></div>
+        <div class="form-group"><label>Stock</label><input type="number" id="pStock" min="0" value="10"></div>
+        <button type="submit" class="btn-submit" id="productSaveBtn">Save Product</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  /* ── Auth guard ─────────────────────── */
+  const user = AuthSystem.getCurrentUser();
+  if (!user || user.role !== 'cs') {
+    window.location.href = 'cs-login.html';
+    return;
+  }
+
+  const esc = window.escapeHtml || (s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
+
+  /* ── Profile ────────────────────────── */
+  document.getElementById('csName').textContent  = user.name  || 'Customer Service';
+  document.getElementById('csEmail').textContent = user.email || '';
+
+  /* ── Navigation ─────────────────────── */
+  document.querySelectorAll('.cs-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cs-nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.cs-section').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      const sec = btn.dataset.section;
+      document.getElementById(sec).classList.add('active');
+      dispatch(sec);
+    });
+  });
+
+  function dispatch(sec) {
+    ({overview:loadOverview, orders:loadOrders, registrations:loadRegistrations,
+      enquiries:loadEnquiries, contact:loadContactForms, collections:loadCollections,
+      records:loadRecords})[sec]?.();
+  }
+
+  /* ── Helpers ────────────────────────── */
+  function fmtMoney(n) { return '₦ ' + parseFloat(n||0).toLocaleString('en-NG'); }
+  function fmtDate(d)  { if (!d) return '—'; return new Date(d).toLocaleDateString('en-NG',{day:'2-digit',month:'short',year:'numeric'}); }
+  function fmtDT(d)    { if (!d) return '—'; return new Date(d).toLocaleString('en-NG',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+  /* ── Modal ──────────────────────────── */
+  function openModal(title) { document.getElementById('modalTitle').textContent = title||'Details'; document.getElementById('actionModal').classList.add('open'); }
+  window.closeModal = () => document.getElementById('actionModal').classList.remove('open');
+  document.getElementById('actionModal').addEventListener('click', e => { if (e.target === document.getElementById('actionModal')) closeModal(); });
+
+  /* ══════════════════ OVERVIEW ══════════════════ */
+  async function loadOverview() {
+    const res = await LAApi.admin.stats();
+    if (!res.ok) return;
+    const d = res.data;
+    document.getElementById('statClients').textContent       = d.total_clients   || 0;
+    document.getElementById('statPending').textContent       = d.pending_clients  || 0;
+    document.getElementById('statOrders').textContent        = d.total_orders     || 0;
+    document.getElementById('statPendingOrders').textContent = d.pending_orders   || 0;
+    document.getElementById('statEnquiries').textContent     = d.open_enquiries   || 0;
+    document.getElementById('statContact').textContent       = d.contact_forms    || 0;
+  }
+
+  /* ══════════════════ ORDERS ══════════════════ */
+  let _orders = [];
+  async function loadOrders() {
+    const res = await LAApi.admin.allOrders();
+    if (res.ok) {
+      const data = res.data.data || res.data;
+      _orders = Array.isArray(data) ? data : [];
+    } else { _orders = []; }
+    renderOrders();
+  }
+
+  function renderOrders() {
+    const tbody = document.getElementById('ordersTable');
+    if (_orders.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">No orders yet</td></tr>'; return; }
+    tbody.innerHTML = _orders.map(o => {
+      const st  = (o.status||'pending').toLowerCase();
+      const ref = o.reference || o.id;
+      const items = o.items || o.order_items || [];
+      const qty = items.reduce((s,i)=>s+(i.quantity||i.qty||1),0);
+      return `<tr>
+        <td style="font-family:monospace;color:var(--gold);font-size:0.78rem;">${esc(ref)}</td>
+        <td>${esc(o.client_name||'Guest')}</td>
+        <td>${qty} item${qty!==1?'s':''}</td>
+        <td style="color:var(--gold);">${fmtMoney(o.total)}</td>
+        <td><span class="badge badge-${esc(st)}">${esc(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(o.created_at)}</td>
+        <td>
+          <button class="action-btn" onclick="viewOrder(${o.id})">View</button>
+          <button class="action-btn green" onclick="setStatus(${o.id},'confirmed')">Confirm</button>
+          <button class="action-btn" onclick="downloadReceipt('${esc(o.receipt_token||'')}','${esc(ref)}')">Receipt</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.viewOrder = function(id) {
+    const o = _orders.find(x=>x.id===id); if (!o) return;
+    const items = o.items||o.order_items||[];
+    const st = (o.status||'pending').toLowerCase();
+    const rows = items.map(i=>`<tr>
+      <td>${esc(i.product_name||i.name)}</td>
+      <td>${esc(i.product_category||i.category||'')}</td>
+      <td style="text-align:center;">${i.quantity||i.qty}</td>
+      <td style="text-align:right;color:var(--gold);">${fmtMoney(i.subtotal||((i.unit_price||i.price||0)*(i.quantity||i.qty||1)))}</td>
+    </tr>`).join('');
+    document.getElementById('modalBody').innerHTML = `
+      <p><strong>Ref:</strong> ${esc(o.reference||o.id)}</p>
+      <p><strong>Client:</strong> ${esc(o.client_name||'Guest')}</p>
+      <p><strong>Email:</strong> ${esc(o.client_email||'N/A')}</p>
+      <p><strong>Phone:</strong> ${esc(o.client_phone||'N/A')}</p>
+      <p><strong>Status:</strong> <span class="badge badge-${esc(st)}">${esc(st)}</span></p>
+      <p><strong>Date:</strong> ${fmtDT(o.created_at)}</p>
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:14px 0;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+        <tr style="color:var(--gold);font-size:0.7rem;text-transform:uppercase;"><th style="padding:5px 0;text-align:left;">Item</th><th>Cat</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Total</th></tr>
+        ${rows}
+      </table>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.07);">
+        <span style="color:var(--muted);font-size:0.78rem;">ORDER TOTAL</span>
+        <span style="font-family:var(--font-display);font-size:1.2rem;color:var(--gold);">${fmtMoney(o.total)}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+        <button class="action-btn green" style="padding:9px 16px;" onclick="setStatus(${o.id},'confirmed');closeModal();">Confirm</button>
+        <button class="action-btn gold"  style="padding:9px 16px;" onclick="setStatus(${o.id},'paid');closeModal();">Mark Paid</button>
+        <button class="action-btn"       style="padding:9px 16px;" onclick="setStatus(${o.id},'delivered');closeModal();">Delivered</button>
+        <button class="action-btn red"   style="padding:9px 16px;" onclick="setStatus(${o.id},'cancelled');closeModal();">Cancel</button>
+      </div>`;
+    openModal('Order Details');
+  };
+
+  window.setStatus = async function(id, status) {
+    const res = await LAApi.admin.orderStatus(id, status);
+    if (res.ok) await loadOrders();
+    else alert(res.data?.message || 'Failed to update status.');
+  };
+
+  window.downloadReceipt = function(token, ref) {
+    if (!token) { alert('Receipt not available yet.'); return; }
+    const url = `receipt.html?token=${encodeURIComponent(token)}&ref=${encodeURIComponent(ref)}`;
+    window.open(url, '_blank');
+  };
+
+  /* ══════════════════ REGISTRATIONS ══════════════════ */
+  let _clients = [];
+  async function loadRegistrations() {
+    const res = await LAApi.admin.clients();
+    _clients = res.ok ? (res.data || []) : [];
+    renderClients();
+  }
+
+  function renderClients() {
+    const tbody = document.getElementById('regTable');
+    if (_clients.length===0) { tbody.innerHTML='<tr><td colspan="7" class="empty-cell">No registrations yet</td></tr>'; return; }
+    tbody.innerHTML = [..._clients].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(c => {
+      const st = (c.status||'pending').toLowerCase();
+      return `<tr>
+        <td style="color:var(--ivory);">${esc(c.name)}</td>
+        <td>${esc(c.email)}</td>
+        <td style="color:var(--gold);font-size:0.78rem;">${esc(c.brand_email||'—')}</td>
+        <td>${esc(c.phone||'N/A')}</td>
+        <td><span class="badge badge-${esc(st)}">${esc(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(c.created_at)}</td>
+        <td>
+          ${st==='pending'
+            ? `<button class="action-btn green" onclick="approveClient(${c.id})">Approve</button>
+               <button class="action-btn red" onclick="rejectClient(${c.id})">Reject</button>`
+            : `<button class="action-btn" onclick="viewClient(${c.id})">View</button>`}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.approveClient = async function(id) {
+    const res = await LAApi.admin.approveClient(id);
+    if (res.ok) { await loadRegistrations(); await loadOverview(); }
+    else alert(res.data?.message||'Error approving client.');
+  };
+
+  window.rejectClient = async function(id) {
+    const reason = prompt('Rejection reason (optional):');
+    if (reason===null) return;
+    const res = await LAApi.admin.rejectClient(id, reason);
+    if (res.ok) { await loadRegistrations(); await loadOverview(); }
+    else alert(res.data?.message||'Error rejecting client.');
+  };
+
+  window.viewClient = function(id) {
+    const c = _clients.find(x=>x.id===id); if (!c) return;
+    const st = (c.status||'pending').toLowerCase();
+    document.getElementById('modalBody').innerHTML = `
+      <p><strong>Name:</strong> ${esc(c.name)}</p>
+      <p><strong>Email:</strong> ${esc(c.email)}</p>
+      <p><strong>Brand Login:</strong> <span style="color:var(--gold);">${esc(c.brand_email||'—')}</span></p>
+      <p><strong>Phone:</strong> ${esc(c.phone||'N/A')}</p>
+      <p><strong>Status:</strong> <span class="badge badge-${esc(st)}">${esc(st)}</span></p>
+      <p><strong>Interests:</strong> ${esc(c.interests||'N/A')}</p>
+      <p><strong>Registered:</strong> ${fmtDT(c.created_at)}</p>
+      ${c.rejection_reason ? `<p><strong>Rejection Reason:</strong> ${esc(c.rejection_reason)}</p>` : ''}`;
+    openModal('Client Details');
+  };
+
+  /* ══════════════════ ENQUIRIES ══════════════════ */
+  let _enquiries = [];
+  async function loadEnquiries() {
+    const res = await LAApi.enquiries.list();
+    _enquiries = res.ok ? (res.data?.data||res.data||[]) : [];
+    renderEnquiries();
+  }
+
+  function renderEnquiries() {
+    const tbody = document.getElementById('enqTable');
+    if (_enquiries.length===0) { tbody.innerHTML='<tr><td colspan="5" class="empty-cell">No enquiries yet</td></tr>'; return; }
+    tbody.innerHTML = [..._enquiries].sort((a,b)=>new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at)).map(enq => {
+      const st = (enq.status||'open').toLowerCase();
+      return `<tr>
+        <td style="color:var(--ivory);">${esc(enq.client_name||enq.clientName||'N/A')}</td>
+        <td>${esc(enq.subject||'N/A')}</td>
+        <td><span class="badge badge-${esc(st)}">${esc(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(enq.updated_at||enq.created_at)}</td>
+        <td><button class="action-btn" onclick="viewEnquiry(${enq.id})">View &amp; Reply</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.viewEnquiry = async function(id) {
+    let enq = _enquiries.find(e=>e.id===id);
+    const res = await LAApi.enquiries.get(id);
+    if (res.ok) enq = res.data;
+    if (!enq) return;
+    const st = (enq.status||'open').toLowerCase();
+    const msgs = (enq.messages||[]).map(m=>`
+      <div class="msg-item">
+        <div class="msg-sender">${esc(m.sender_name||m.sender||'Unknown')} <small style="color:var(--muted);">(${esc(m.sender_type||'')})</small></div>
+        <div class="msg-text">${esc(m.message||m.text||'')}</div>
+        <div class="msg-time">${fmtDT(m.created_at)}</div>
+      </div>`).join('') || '<p style="color:var(--muted);text-align:center;">No messages yet</p>';
+    document.getElementById('modalBody').innerHTML = `
+      <p><strong>Subject:</strong> ${esc(enq.subject)}</p>
+      <p><strong>Client:</strong> ${esc(enq.client_name||'N/A')}</p>
+      <p><strong>Status:</strong>
+        <select onchange="updateEnqStatus(${enq.id},this.value)" style="background:rgba(17,16,23,0.98);color:var(--ivory);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:4px 8px;font-size:0.8rem;margin-left:8px;">
+          <option value="open" ${st==='open'?'selected':''}>Open</option>
+          <option value="in-progress" ${st==='in-progress'?'selected':''}>In Progress</option>
+          <option value="closed" ${st==='closed'?'selected':''}>Closed</option>
+        </select>
+      </p>
+      <div class="msg-thread">${msgs}</div>
+      <div class="form-group">
+        <label>CS Reply</label>
+        <textarea id="csReplyText" placeholder="Type your response…"></textarea>
+      </div>
+      <button class="btn-submit" onclick="sendCSReply(${enq.id})">Send Reply</button>`;
+    openModal('Enquiry: ' + enq.subject);
+  };
+
+  window.sendCSReply = async function(id) {
+    const t = document.getElementById('csReplyText')?.value.trim();
+    if (!t) return;
+    const res = await LAApi.enquiries.sendMessage(id, t);
+    if (res.ok) { closeModal(); await loadEnquiries(); }
+    else alert(res.data?.message||'Could not send reply.');
+  };
+
+  window.updateEnqStatus = async function(id, status) {
+    await LAApi.admin.enquiryStatus(id, status);
+    await loadEnquiries();
+  };
+
+  /* ══════════════════ CONTACT FORMS ══════════════════ */
+  let _forms = [];
+  async function loadContactForms() {
+    const res = await LAApi.admin.contactForms();
+    _forms = res.ok ? (res.data?.data||res.data||[]) : [];
+    renderForms();
+  }
+
+  function renderForms() {
+    const tbody = document.getElementById('contactTable');
+    if (_forms.length===0) { tbody.innerHTML='<tr><td colspan="6" class="empty-cell">No submissions yet</td></tr>'; return; }
+    tbody.innerHTML = [..._forms].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(f => {
+      const st = (f.status||'received').toLowerCase();
+      return `<tr>
+        <td style="color:var(--ivory);">${esc(f.name||'N/A')}</td>
+        <td>${esc(f.email||'N/A')}</td>
+        <td>${esc(f.enquiry_type||f.subject||'N/A')}</td>
+        <td><span class="badge badge-${esc(st)}">${esc(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(f.created_at)}</td>
+        <td><button class="action-btn" onclick="viewForm(${f.id})">View</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  window.viewForm = function(id) {
+    const f = _forms.find(x=>x.id===id); if (!f) return;
+    const st = (f.status||'received').toLowerCase();
+    document.getElementById('modalBody').innerHTML = `
+      <p><strong>Name:</strong> ${esc(f.name||'N/A')}</p>
+      <p><strong>Email:</strong> ${esc(f.email||'N/A')}</p>
+      <p><strong>Phone:</strong> ${esc(f.phone||'N/A')}</p>
+      <p><strong>Type:</strong> ${esc(f.enquiry_type||'N/A')}</p>
+      <p><strong>Status:</strong>
+        <select onchange="updateFormStatus(${f.id},this.value)" style="background:rgba(17,16,23,0.98);color:var(--ivory);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:4px 8px;font-size:0.8rem;margin-left:8px;">
+          <option value="received"  ${st==='received'?'selected':''}>Received</option>
+          <option value="reviewed"  ${st==='reviewed'?'selected':''}>Reviewed</option>
+          <option value="responded" ${st==='responded'?'selected':''}>Responded</option>
+        </select>
+      </p>
+      <p><strong>Date:</strong> ${fmtDT(f.created_at)}</p>
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.07);margin:12px 0;">
+      <p><strong>Message:</strong></p>
+      <p style="line-height:1.7;color:rgba(248,244,239,0.75);">${esc(f.message||'No message.')}</p>`;
+    openModal('Contact Form');
+  };
+
+  window.updateFormStatus = async function(id, status) {
+    await LAApi.admin.contactFormStatus(id, status);
+    await loadContactForms();
+  };
+
+  /* ══════════════════ COLLECTIONS ══════════════════ */
+  let _products = [];
+  async function loadCollections() {
+    const res = await LAApi.products.list();
+    _products = res.ok ? (res.data || []) : [];
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const grid = document.getElementById('productGrid');
+    if (_products.length===0) { grid.innerHTML='<p style="color:var(--muted);">No products yet. Add one above.</p>'; return; }
+    grid.innerHTML = _products.map(p => `
+      <div class="product-card">
+        ${p.image||p.img ? `<img src="${esc(p.image||p.img)}" alt="${esc(p.name)}" onerror="this.style.display='none'">` : ''}
+        <div class="product-card-body">
+          ${p.tag ? `<span class="badge badge-confirmed" style="margin-bottom:6px;font-size:0.65rem;">${esc(p.tag)}</span>` : ''}
+          <div class="product-card-name">${esc(p.name)}</div>
+          <div class="product-card-cat">${esc(p.category)}</div>
+          <div class="product-card-price">₦ ${parseFloat(p.price||0).toLocaleString('en-NG')}</div>
+          <div style="font-size:0.72rem;color:${p.active?'#4caf50':'#ef5350'};margin-bottom:10px;">${p.active?'● Active':'● Hidden'}</div>
+          <div class="product-card-actions">
+            <button class="action-btn" onclick="openEditProduct(${p.id})">Edit</button>
+            <button class="action-btn ${p.active?'red':'green'}" onclick="toggleProduct(${p.id},${!p.active})">${p.active?'Hide':'Show'}</button>
+            <button class="action-btn red" onclick="deleteProduct(${p.id})">Delete</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  window.openAddProduct = function() {
+    document.getElementById('pId').value='';
+    document.getElementById('productForm').reset();
+    document.getElementById('productModalTitle').textContent='Add New Product';
+    document.getElementById('productModal').classList.add('open');
+  };
+
+  window.openEditProduct = function(id) {
+    const p = _products.find(x=>x.id===id); if (!p) return;
+    document.getElementById('pId').value    = p.id;
+    document.getElementById('pSku').value   = p.sku||'';
+    document.getElementById('pName').value  = p.name||'';
+    document.getElementById('pCat').value   = p.category||'Luxury Suits';
+    document.getElementById('pPrice').value = p.price||'';
+    document.getElementById('pTag').value   = p.tag||'';
+    document.getElementById('pImage').value = p.image||p.img||'';
+    document.getElementById('pStock').value = p.stock||10;
+    document.getElementById('productModalTitle').textContent='Edit Product';
+    document.getElementById('productModal').classList.add('open');
+  };
+
+  window.closeProductModal = () => document.getElementById('productModal').classList.remove('open');
+  document.getElementById('productModal').addEventListener('click', e => { if (e.target===document.getElementById('productModal')) closeProductModal(); });
+
+  document.getElementById('productForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('productSaveBtn');
+    btn.disabled=true; btn.textContent='Saving…';
+    const id    = document.getElementById('pId').value;
+    const data  = {
+      sku:      document.getElementById('pSku').value.trim(),
+      name:     document.getElementById('pName').value.trim(),
+      category: document.getElementById('pCat').value,
+      price:    parseInt(document.getElementById('pPrice').value)||0,
+      tag:      document.getElementById('pTag').value.trim()||null,
+      image:    document.getElementById('pImage').value.trim()||null,
+      stock:    parseInt(document.getElementById('pStock').value)||0,
+      active:   true,
+    };
+    const res = id ? await LAApi.admin.updateProduct(id, data) : await LAApi.admin.createProduct(data);
+    if (res.ok) { closeProductModal(); await loadCollections(); }
+    else alert(res.data?.message||'Failed to save product.');
+    btn.disabled=false; btn.textContent='Save Product';
+  });
+
+  window.toggleProduct = async function(id, active) {
+    const res = await LAApi.admin.updateProduct(id, { active });
+    if (res.ok) await loadCollections();
+    else alert(res.data?.message||'Failed to update.');
+  };
+
+  window.deleteProduct = async function(id) {
+    if (!confirm('Delete this product? This cannot be undone.')) return;
+    const res = await LAApi.admin.deleteProduct(id);
+    if (res.ok) await loadCollections();
+    else alert(res.data?.message||'Failed to delete product.');
+  };
+
+  /* ══════════════════ RECORDS ══════════════════ */
+  let _records = null;
+  async function loadRecords() {
+    if (_records) { renderRecords(); return; }
+    const res = await LAApi.admin.records();
+    if (res.ok) { _records = res.data; renderRecords(); }
+  }
+
+  window.switchRec = function(panelId, btn) {
+    document.querySelectorAll('.rec-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.rec-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(panelId).classList.add('active');
+  };
+
+  function renderRecords() {
+    if (!_records) return;
+    // Clients
+    document.getElementById('rec-clients').innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Brand Login</th><th>Status</th><th>Registered</th></tr></thead>
+        <tbody>${(_records.clients||[]).map(c=>`<tr>
+          <td>${esc(c.name)}</td><td>${esc(c.email)}</td>
+          <td style="color:var(--gold);">${esc(c.brand_email||'—')}</td>
+          <td><span class="badge badge-${esc((c.status||'pending').toLowerCase())}">${esc(c.status||'pending')}</span></td>
+          <td>${fmtDate(c.created_at)}</td>
+        </tr>`).join('')||'<tr><td colspan="5" class="empty-cell">No clients</td></tr>'}</tbody>
+      </table></div>`;
+
+    document.getElementById('rec-orders').innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Ref</th><th>Client</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${(_records.orders||[]).map(o=>`<tr>
+          <td style="font-family:monospace;color:var(--gold);">${esc(o.reference||o.id)}</td>
+          <td>${esc(o.client_name||'Guest')}</td>
+          <td style="color:var(--gold);">${fmtMoney(o.total)}</td>
+          <td><span class="badge badge-${esc((o.status||'pending').toLowerCase())}">${esc(o.status||'pending')}</span></td>
+          <td>${fmtDate(o.created_at)}</td>
+        </tr>`).join('')||'<tr><td colspan="5" class="empty-cell">No orders</td></tr>'}</tbody>
+      </table></div>`;
+
+    document.getElementById('rec-enquiries').innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Client</th><th>Subject</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${(_records.enquiries||[]).map(enq=>`<tr>
+          <td>${esc(enq.client_name||'N/A')}</td>
+          <td>${esc(enq.subject||'N/A')}</td>
+          <td><span class="badge badge-${esc((enq.status||'open').toLowerCase())}">${esc(enq.status||'open')}</span></td>
+          <td>${fmtDate(enq.created_at)}</td>
+        </tr>`).join('')||'<tr><td colspan="4" class="empty-cell">No enquiries</td></tr>'}</tbody>
+      </table></div>`;
+
+    document.getElementById('rec-forms').innerHTML = `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${(_records.contact_forms||[]).map(f=>`<tr>
+          <td>${esc(f.name||'N/A')}</td><td>${esc(f.email||'N/A')}</td>
+          <td>${esc(f.enquiry_type||'N/A')}</td>
+          <td><span class="badge badge-${esc((f.status||'received').toLowerCase())}">${esc(f.status||'received')}</span></td>
+          <td>${fmtDate(f.created_at)}</td>
+        </tr>`).join('')||'<tr><td colspan="5" class="empty-cell">No forms</td></tr>'}</tbody>
+      </table></div>`;
+  }
+
+  /* ── Logout ─────────────────────────── */
+  window.doLogout = async function() {
+    if (confirm('Sign out of Customer Service portal?')) {
+      await AuthSystem.logout();
+      window.location.href = 'cs-login.html';
+    }
+  };
+
+  /* ── Initial load ───────────────────── */
+  loadOverview();
+
+})();
+</script>
+</body>
+</html>

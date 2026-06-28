@@ -163,6 +163,27 @@
       color: #d4af37;
     }
 
+    /* Success panel */
+    .success-panel {
+      display: none;
+      text-align: center;
+      padding: 8px 0;
+    }
+    .success-icon { font-size: 3rem; margin-bottom: 16px; }
+    .success-panel h2 { color: var(--ivory); font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; margin-bottom: 10px; }
+    .success-panel p { color: var(--muted); font-size: 0.88rem; line-height: 1.7; margin-bottom: 16px; }
+    .brand-email-box {
+      background: rgba(197,155,45,0.08);
+      border: 1px solid rgba(197,155,45,0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .brand-email-box .label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--gold); margin-bottom: 8px; }
+    .brand-email-box .email { font-family: monospace; font-size: 1.1rem; color: var(--ivory); font-weight: 600; word-break: break-all; }
+    .brand-email-note { font-size: 0.78rem; color: var(--muted); margin-top: 10px; }
+    .pw-hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
     @media (max-width: 600px) {
       .form-row {
         grid-template-columns: 1fr;
@@ -188,6 +209,22 @@
         <img src="img/logo2.jpg" alt="L.A. Couture">
         <h1>Create Account</h1>
         <p>Join L.A. Couture</p>
+      </div>
+
+      <!-- Success panel (shown after registration) -->
+      <div class="success-panel" id="successPanel">
+        <div class="success-icon">🎉</div>
+        <h2>Account Created!</h2>
+        <p>Welcome to L.A. Couture. Your account is pending approval by our team — we'll review it shortly.</p>
+        <div class="brand-email-box">
+          <div class="label">Your Brand Login Email</div>
+          <div class="email" id="brandEmailDisplay">—</div>
+          <div class="brand-email-note">Save this — you can log in with this address instead of your personal email.</div>
+        </div>
+        <p style="font-size:0.82rem;color:var(--muted);">Once approved, sign in with your brand email or personal email and the password you just set.</p>
+        <div style="margin-top:20px;">
+          <a href="client-login.html" class="auth-btn" style="display:inline-block;width:auto;padding:12px 32px;text-decoration:none;color:var(--navy);">Go to Login</a>
+        </div>
       </div>
 
       <form id="registerForm">
@@ -218,6 +255,7 @@
           <div class="form-group">
             <label for="password">Password *</label>
             <input type="password" id="password" required autocomplete="new-password">
+            <div class="pw-hint">Min 8 chars · uppercase · lowercase · number · symbol</div>
           </div>
           <div class="form-group">
             <label for="confirmPassword">Confirm Password *</label>
@@ -302,8 +340,13 @@
         });
 
         if (res.ok) {
-          alert('Registration successful! Your account is pending admin approval. You will be notified when approved.');
-          window.location.href = 'client-login.html';
+          const brandEmail = res.data?.brand_login || res.data?.user?.brand_email;
+          // Show success panel with brand email
+          form.style.display = 'none';
+          document.querySelector('.auth-link').style.display = 'none';
+          document.querySelector('.back-link').style.display = 'none';
+          document.getElementById('brandEmailDisplay').textContent = brandEmail || (firstName.toLowerCase() + '@lacouture.com');
+          document.getElementById('successPanel').style.display = 'block';
         } else {
           const errs = res.data?.errors;
           const msg  = errs

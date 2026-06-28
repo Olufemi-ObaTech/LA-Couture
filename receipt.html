@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Order Receipt — L.A. Couture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-sans);background:var(--navy);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 20px;}
+    .receipt-card{background:#fff;color:#1a1a1a;border-radius:16px;max-width:560px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+    .receipt-header{background:linear-gradient(135deg,#0a090e 0%,#13121a 100%);color:#f8f4ef;padding:32px;border-radius:16px 16px 0 0;text-align:center;}
+    .receipt-logo{font-family:'Playfair Display',serif;font-size:1.5rem;letter-spacing:0.2em;color:#c59b2d;margin-bottom:4px;}
+    .receipt-sub{font-size:0.72rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(248,244,239,0.5);margin-bottom:20px;}
+    .receipt-ref{font-family:monospace;font-size:0.9rem;color:#c59b2d;background:rgba(197,155,45,0.12);border:1px solid rgba(197,155,45,0.25);display:inline-block;padding:6px 18px;border-radius:999px;}
+    .receipt-body{padding:28px 32px;}
+    .receipt-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #e8e8e8;}
+    .meta-item .label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin-bottom:4px;}
+    .meta-item .value{font-size:0.9rem;font-weight:600;color:#1a1a1a;}
+    .receipt-items{margin-bottom:20px;}
+    .items-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;padding:8px 0;border-bottom:2px solid #e8e8e8;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:#888;}
+    .items-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;padding:10px 0;border-bottom:1px solid #f0f0f0;font-size:0.85rem;}
+    .items-row .name{color:#1a1a1a;font-weight:500;}
+    .items-row .cat{color:#888;font-size:0.78rem;}
+    .total-row{display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-top:2px solid #1a1a1a;margin-top:8px;}
+    .total-label{font-size:0.78rem;text-transform:uppercase;letter-spacing:0.1em;color:#888;font-weight:600;}
+    .total-value{font-family:'Playfair Display',serif;font-size:1.6rem;color:#c59b2d;font-weight:600;}
+    .receipt-status{text-align:center;margin-bottom:20px;}
+    .status-badge{display:inline-block;padding:6px 18px;border-radius:999px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;}
+    .status-pending  {background:#fff8e1;color:#f9a825;border:1px solid #f9a825;}
+    .status-confirmed{background:#e8f5e9;color:#2e7d32;border:1px solid #2e7d32;}
+    .status-paid     {background:#e3f2fd;color:#1565c0;border:1px solid #1565c0;}
+    .status-delivered{background:#f3e5f5;color:#6a1b9a;border:1px solid #6a1b9a;}
+    .status-cancelled{background:#fce4ec;color:#b71c1c;border:1px solid #b71c1c;}
+    .receipt-footer{background:#f9f9f9;border-top:1px solid #e8e8e8;padding:20px 32px;border-radius:0 0 16px 16px;text-align:center;}
+    .receipt-footer p{font-size:0.78rem;color:#888;line-height:1.6;}
+    .receipt-footer strong{color:#1a1a1a;}
+    .btn-row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+    .btn-print{padding:10px 24px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+    .btn-print:hover{background:#333;}
+    .btn-home{padding:10px 24px;background:linear-gradient(135deg,#c59b2d,#b08820);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;transition:all 0.2s;}
+    .btn-home:hover{opacity:0.9;}
+    /* Loading / Error states */
+    .state-box{text-align:center;padding:60px 20px;}
+    .state-box .icon{font-size:3rem;margin-bottom:16px;}
+    .state-box h2{color:var(--ivory);margin-bottom:10px;font-family:'Playfair Display',serif;font-weight:400;}
+    .state-box p{color:var(--muted);font-size:0.88rem;}
+    @media print{
+      body{background:#fff;padding:0;}
+      .btn-row,.receipt-status{display:none;}
+      .receipt-card{box-shadow:none;border-radius:0;max-width:100%;}
+    }
+  </style>
+</head>
+<body>
+
+<div id="loadingState" class="state-box">
+  <div class="icon">⏳</div>
+  <h2>Loading Receipt…</h2>
+  <p>Please wait while we fetch your order details.</p>
+</div>
+
+<div id="errorState" class="state-box" style="display:none;">
+  <div class="icon">❌</div>
+  <h2>Receipt Not Found</h2>
+  <p>This receipt link is invalid or has expired.<br>Please contact us if you need help with your order.</p>
+  <div class="btn-row" style="margin-top:24px;">
+    <a href="index.html" class="btn-home">Go to Home</a>
+  </div>
+</div>
+
+<div class="receipt-card" id="receiptCard" style="display:none;">
+  <div class="receipt-header">
+    <div class="receipt-logo">L.A. COUTURE</div>
+    <div class="receipt-sub">Luxury Menswear · Abuja, Nigeria</div>
+    <div class="receipt-ref" id="rcRef">—</div>
+  </div>
+
+  <div class="receipt-body">
+    <div class="receipt-meta">
+      <div class="meta-item">
+        <div class="label">Client Name</div>
+        <div class="value" id="rcName">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Order Date</div>
+        <div class="value" id="rcDate">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Email</div>
+        <div class="value" id="rcEmail" style="font-size:0.82rem;">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="label">Order Status</div>
+        <div class="value" id="rcStatusWrap">—</div>
+      </div>
+    </div>
+
+    <div class="receipt-items">
+      <div class="items-header">
+        <span>Item</span><span>Qty</span><span>Unit Price</span><span>Subtotal</span>
+      </div>
+      <div id="rcItems"></div>
+    </div>
+
+    <div class="total-row">
+      <span class="total-label">Grand Total</span>
+      <span class="total-value" id="rcTotal">—</span>
+    </div>
+  </div>
+
+  <div class="receipt-footer">
+    <p>Thank you for choosing <strong>L.A. Couture</strong>.<br>
+       For enquiries, contact us at <strong>hello@lacouture.com</strong>
+    </p>
+    <div class="btn-row">
+      <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
+      <a href="index.html" class="btn-home">Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  const esc = window.escapeHtml || (s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-NG',{day:'2-digit',month:'long',year:'numeric'});
+  }
+
+  function fmtMoney(n) {
+    return '₦ ' + parseFloat(n||0).toLocaleString('en-NG');
+  }
+
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  async function load() {
+    const token = getParam('token');
+
+    if (!token) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('errorState').style.display   = 'block';
+      return;
+    }
+
+    const res = await LAApi.receipts.get(token);
+
+    document.getElementById('loadingState').style.display = 'none';
+
+    if (!res.ok || !res.data) {
+      document.getElementById('errorState').style.display = 'block';
+      return;
+    }
+
+    const o = res.data;
+    const st = (o.status||'pending').toLowerCase();
+
+    document.getElementById('rcRef').textContent   = o.reference || '—';
+    document.getElementById('rcName').textContent  = o.client_name || 'Guest';
+    document.getElementById('rcDate').textContent  = fmtDate(o.created_at);
+    document.getElementById('rcEmail').textContent = o.client_email || '—';
+    document.getElementById('rcTotal').textContent = fmtMoney(o.total);
+    document.getElementById('rcStatusWrap').innerHTML =
+      `<span class="status-badge status-${esc(st)}">${esc(st.charAt(0).toUpperCase()+st.slice(1))}</span>`;
+
+    const items = o.items || [];
+    document.getElementById('rcItems').innerHTML = items.length
+      ? items.map(i => `
+          <div class="items-row">
+            <div>
+              <div class="name">${esc(i.name)}</div>
+              ${i.category ? `<div class="cat">${esc(i.category)}</div>` : ''}
+            </div>
+            <div>${i.qty}</div>
+            <div>${fmtMoney(i.price)}</div>
+            <div style="font-weight:600;">${fmtMoney(i.subtotal)}</div>
+          </div>`).join('')
+      : '<p style="color:#888;text-align:center;padding:16px 0;font-size:0.85rem;">No items found.</p>';
+
+    document.getElementById('receiptCard').style.display = 'block';
+    document.title = `Receipt ${o.reference||''} — L.A. Couture`;
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

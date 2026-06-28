@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Service Login — L.A. Couture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .auth-container { min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#09080b 0%,#0d1a12 100%); padding:20px; }
+    .auth-card { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:48px; max-width:420px; width:100%; backdrop-filter:blur(10px); }
+    .auth-logo { text-align:center; margin-bottom:40px; }
+    .auth-logo img { width:70px; height:auto; margin-bottom:14px; border-radius:12px; }
+    .auth-logo h1 { color:var(--ivory); font-size:1.3rem; margin:0; }
+    .auth-logo .cs-badge { display:inline-block; background:rgba(40,167,69,0.15); border:1px solid rgba(40,167,69,0.35); color:#4caf50; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.1em; padding:4px 12px; border-radius:999px; margin-top:8px; }
+    .form-group { margin-bottom:22px; }
+    .form-group label { display:block; color:var(--text); font-size:0.82rem; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.1em; }
+    .form-group input { width:100%; padding:12px 16px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--ivory); font-size:1rem; transition:all 0.3s; box-sizing:border-box; }
+    .form-group input:focus { outline:none; border-color:#4caf50; background:rgba(255,255,255,0.08); }
+    .form-group input::placeholder { color:rgba(248,244,239,0.4); }
+    .auth-btn { width:100%; padding:14px; background:linear-gradient(135deg,#28a745,#1e7e34); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:600; cursor:pointer; transition:all 0.3s; text-transform:uppercase; letter-spacing:0.1em; }
+    .auth-btn:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(40,167,69,0.3); }
+    .auth-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+    .auth-error { background:rgba(255,69,69,0.1); border:1px solid rgba(255,69,69,0.3); color:#ff6b6b; padding:12px 16px; border-radius:8px; margin-bottom:20px; display:none; font-size:0.88rem; }
+    .back-link { text-align:center; margin-top:24px; }
+    .back-link a { color:#4caf50; text-decoration:none; font-size:0.88rem; }
+    .back-link a:hover { color:#66bb6a; }
+    .divider { text-align:center; margin:16px 0 0; color:rgba(248,244,239,0.3); font-size:0.78rem; }
+  </style>
+</head>
+<body style="background:linear-gradient(135deg,#09080b 0%,#0d1a12 100%);">
+  <div class="topbar" style="padding:6px 24px;">
+    <div class="topbar-inner">
+      <span id="clock-date"></span>
+      <span id="clock-time"></span>
+    </div>
+  </div>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="img/logo2.jpg" alt="L.A. Couture">
+        <h1>Customer Service</h1>
+        <div class="cs-badge">Staff Portal</div>
+      </div>
+
+      <form id="csLoginForm">
+        <div class="auth-error" id="errorMsg"></div>
+
+        <div class="form-group">
+          <label for="email">CS Email</label>
+          <input type="email" id="email" placeholder="cs@lacouture.com" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="auth-btn" id="loginBtn">Sign In to CS Portal</button>
+      </form>
+
+      <div class="divider">Admin? <a href="admin-login.html" style="color:var(--gold);">Admin Login →</a></div>
+      <div class="back-link"><a href="index.html">← Back to Home</a></div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Redirect if already logged in as CS
+    (function() {
+      const u = AuthSystem.getCurrentUser();
+      if (u && u.role === 'cs') window.location.href = 'cs-dashboard.html';
+      if (u && u.role === 'admin') window.location.href = 'admin-dashboard.html';
+    })();
+
+    const form     = document.getElementById('csLoginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const loginBtn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in…';
+      errorMsg.style.display = 'none';
+
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      const rl = FormSecurity.checkRateLimit('cs-login', 5, 5 * 60 * 1000);
+      if (!rl.allowed) {
+        errorMsg.textContent = `Too many attempts. Try again in ${rl.waitSecs}s.`;
+        errorMsg.style.display = 'block';
+        loginBtn.disabled = false; loginBtn.textContent = 'Sign In to CS Portal';
+        return;
+      }
+
+      const res = await LAApi.auth.csLogin(email, password);
+      if (res.ok) {
+        window.location.href = 'cs-dashboard.html';
+      } else {
+        errorMsg.textContent = res.data?.message || 'Invalid credentials.';
+        errorMsg.style.display = 'block';
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In to CS Portal';
+      }
+    });
+  </script>
+</body>
+</html>

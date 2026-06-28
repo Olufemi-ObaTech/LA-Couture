@@ -45,10 +45,12 @@ const LAApi = (() => {
       if (resp.status === 401) {
         clearToken();
         if (requiresAuth) {
-          const u = localStorage.getItem('la_couture_current_user');
-          const role = u ? (JSON.parse(u).role || '') : '';
+          let role = '';
+          try { const u = localStorage.getItem('la_couture_current_user'); role = u ? (JSON.parse(u).role || '') : ''; } catch {}
           localStorage.removeItem('la_couture_current_user');
-          window.location.href = role === 'admin' ? 'admin-login.html' : 'client-login.html';
+          if (role === 'admin')  window.location.href = 'admin-login.html';
+          else if (role === 'cs') window.location.href = 'cs-login.html';
+          else                    window.location.href = 'client-login.html';
         }
         return { ok: false, status: 401, data: { message: 'Session expired. Please log in again.' } };
       }
@@ -68,6 +70,17 @@ const LAApi = (() => {
   const auth = {
     async adminLogin(email, password) {
       const res = await request('POST', '/auth/admin/login', { email, password });
+      if (res.ok) {
+        setToken(res.data.token, true);
+        localStorage.setItem('la_couture_current_user', JSON.stringify({
+          ...res.data.user, loginTime: new Date().toISOString()
+        }));
+      }
+      return res;
+    },
+
+    async csLogin(email, password) {
+      const res = await request('POST', '/auth/cs/login', { email, password });
       if (res.ok) {
         setToken(res.data.token, true);
         localStorage.setItem('la_couture_current_user', JSON.stringify({
@@ -162,54 +175,33 @@ const LAApi = (() => {
     },
   };
 
-  /* ── Admin ────────────────────────────────── */
+  /* ── Admin / Staff shared ─────────────────── */
   const admin = {
-    async stats() {
-      return request('GET', '/admin/stats', null, true);
-    },
-
-    async clients() {
-      return request('GET', '/admin/clients', null, true);
-    },
-
-    async approveClient(id) {
-      return request('POST', `/admin/clients/${id}/approve`, {}, true);
-    },
-
-    async rejectClient(id, reason) {
-      return request('POST', `/admin/clients/${id}/reject`, { reason }, true);
-    },
-
-    async orderStatus(id, status) {
-      return request('PUT', `/admin/orders/${id}/status`, { status }, true);
-    },
-
-    async enquiryStatus(id, status) {
-      return request('PUT', `/admin/enquiries/${id}/status`, { status }, true);
-    },
-
-    async contactForms() {
-      return request('GET', '/admin/contact-forms', null, true);
-    },
-
-    async contactFormStatus(id, status) {
-      return request('PUT', `/admin/contact-forms/${id}/status`, { status }, true);
-    },
-
-    async createProduct(data) {
-      return request('POST', '/admin/products', data, true);
-    },
-
-    async updateProduct(id, data) {
-      return request('PUT', `/admin/products/${id}`, data, true);
-    },
-
-    async deleteProduct(id) {
-      return request('DELETE', `/admin/products/${id}`, null, true);
-    },
+    async stats()                         { return request('GET',    '/admin/stats',                   null,     true); },
+    async clients()                       { return request('GET',    '/admin/clients',                 null,     true); },
+    async allOrders()                     { return request('GET',    '/admin/orders',                  null,     true); },
+    async approveClient(id)               { return request('POST',   `/admin/clients/${id}/approve`,   {},       true); },
+    async rejectClient(id, reason)        { return request('POST',   `/admin/clients/${id}/reject`,    { reason }, true); },
+    async orderStatus(id, status)         { return request('PUT',    `/admin/orders/${id}/status`,     { status }, true); },
+    async enquiryStatus(id, status)       { return request('PUT',    `/admin/enquiries/${id}/status`,  { status }, true); },
+    async contactForms()                  { return request('GET',    '/admin/contact-forms',           null,     true); },
+    async contactFormStatus(id, status)   { return request('PUT',    `/admin/contact-forms/${id}/status`, { status }, true); },
+    async createProduct(data)             { return request('POST',   '/admin/products',                data,     true); },
+    async updateProduct(id, data)         { return request('PUT',    `/admin/products/${id}`,          data,     true); },
+    async deleteProduct(id)               { return request('DELETE', `/admin/products/${id}`,          null,     true); },
+    async records()                       { return request('GET',    '/admin/records',                 null,     true); },
+    // Admin-only staff management
+    async staffList()                     { return request('GET',    '/admin/staff',                   null,     true); },
+    async createStaff(data)               { return request('POST',   '/admin/staff',                   data,     true); },
+    async deleteStaff(id)                 { return request('DELETE', `/admin/staff/${id}`,             null,     true); },
   };
 
-  return { auth, products, orders, enquiries, contact, admin };
+  /* ── Public receipt lookup ─────────────────── */
+  const receipts = {
+    async get(token) { return request('GET', `/receipts/${token}`); },
+  };
+
+  return { auth, products, orders, enquiries, contact, admin, receipts };
 })();
 
 window.LAApi = LAApi;

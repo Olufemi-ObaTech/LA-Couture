@@ -12,7 +12,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password', 'role', 'status',
+        'name', 'email', 'brand_email', 'personal_email', 'password', 'role', 'status',
         'phone', 'interests', 'rejection_reason',
         'approved_at', 'rejected_at',
     ];
@@ -32,6 +32,11 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['admin', 'cs']);
     }
 
     public function isApproved(): bool
