@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     unzip \
     git \
+    bash \
     && docker-php-ext-install \
         pdo \
         pdo_pgsql \
@@ -26,16 +27,20 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copy composer files first (layer cache for dependencies)
-COPY composer.json composer.lock ./
+# Copy composer files from backend/ (build context = repo root)
+COPY backend/composer.json backend/composer.lock ./
+
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
-# Copy entire application
-COPY . .
+# Copy full Laravel application from backend/
+COPY backend/ .
 
-# Make startup script executable
-RUN chmod +x /app/start.sh
-
-EXPOSE 8080
+# Ensure storage and cache dirs exist with correct permissions
+RUN mkdir -p storage/framework/{sessions,views,cache} \
+    storage/logs \
+    bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache \
+    && chmod +x /app/start.sh
 
 CMD ["bash", "/app/start.sh"]

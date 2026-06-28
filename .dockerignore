@@ -1,0 +1,17 @@
+# Exclude frontend static files from Docker build context
+*.html
+css/
+js/
+img/
+fonts/
+
+# Exclude git and IDE
+.git/
+.gitignore
+*.md
+
+# Exclude backend local files
+backend/.env
+backend/vendor/
+backend/storage/logs/
+backend/node_modules/
