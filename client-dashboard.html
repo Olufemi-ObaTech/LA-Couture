@@ -207,9 +207,9 @@
   <div class="tabs" role="tablist">
     <button class="tab-btn active" data-tab="profile">Profile</button>
     <button class="tab-btn" data-tab="orders">My Orders</button>
-    <button class="tab-btn" data-tab="enquiry">New Enquiry</button>
-    <button class="tab-btn" data-tab="enquiries">My Enquiries</button>
-    <button class="tab-btn" data-tab="messages">Messages</button>
+    <button class="tab-btn" data-tab="enquiry">New Message</button>
+    <button class="tab-btn" data-tab="enquiries" id="inboxTab">Inbox <span id="inboxBadge" style="display:none;background:var(--gold);color:#09080b;border-radius:999px;font-size:0.65rem;padding:1px 6px;margin-left:4px;font-weight:700;"></span></button>
+    <button class="tab-btn" data-tab="messages">All Messages</button>
   </div>
 
   <!-- PROFILE TAB -->
@@ -241,53 +241,55 @@
     </div>
   </div>
 
-  <!-- NEW ENQUIRY TAB -->
+  <!-- NEW MESSAGE TAB -->
   <div id="enquiry" class="tab-pane">
     <div class="card">
-      <div class="card-label">Create New Enquiry</div>
-      <div class="success-msg" id="enqSuccess">Enquiry submitted successfully!</div>
+      <div class="card-label">Send Message to CS Team</div>
+      <p style="color:var(--muted);font-size:0.82rem;margin-bottom:18px;">Start a new conversation with our Customer Service team. We reply within 24 hours.</p>
+      <div class="success-msg" id="enqSuccess">Message sent! Check your Inbox for replies.</div>
       <form id="enquiryForm" novalidate>
         <div class="form-group">
           <label for="enqSubject">Subject *</label>
           <input type="text" id="enqSubject" placeholder="e.g., Bespoke suit enquiry" required>
         </div>
         <div class="form-group">
-          <label for="enqCategory">Collection Interest *</label>
+          <label for="enqCategory">Topic *</label>
           <select id="enqCategory" required>
-            <option value="">Select a category</option>
+            <option value="">Select a topic</option>
             <option value="luxury-suits">Luxury Suits</option>
             <option value="bespoke">Bespoke Commission</option>
             <option value="agbada">Agbada &amp; Native</option>
             <option value="accessories">Accessories</option>
+            <option value="order">Order Enquiry</option>
             <option value="general">General Enquiry</option>
           </select>
         </div>
         <div class="form-group">
           <label for="enqMessage">Message *</label>
-          <textarea id="enqMessage" placeholder="Describe what you're looking for..." required></textarea>
+          <textarea id="enqMessage" placeholder="Type your message to CS…" required></textarea>
         </div>
-        <button type="submit" class="btn-submit">Submit Enquiry</button>
+        <button type="submit" class="btn-submit">Send Message to CS</button>
       </form>
     </div>
   </div>
 
-  <!-- MY ENQUIRIES TAB -->
+  <!-- INBOX TAB -->
   <div id="enquiries" class="tab-pane">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <h3 style="color:var(--ivory);font-family:var(--font-display);font-weight:400;font-size:1.1rem;margin:0;">Your Inbox</h3>
+      <button class="btn-home" onclick="switchToNewMessage()" style="font-size:0.78rem;padding:7px 14px;">+ New Message</button>
+    </div>
     <div id="enquiriesList" class="enquiry-list">
-      <div class="empty-state">
-        <p>No enquiries yet.</p>
-      </div>
+      <div class="empty-state"><p>No messages yet. Send your first message to CS using "New Message".</p></div>
     </div>
   </div>
 
-  <!-- MESSAGES TAB -->
+  <!-- ALL MESSAGES TAB -->
   <div id="messages" class="tab-pane">
     <div class="card">
-      <div class="card-label">All Messages</div>
+      <div class="card-label">All Messages (Chronological)</div>
       <div id="messagesList">
-        <div class="empty-state" style="padding:30px 0;">
-          <p>No messages yet.</p>
-        </div>
+        <div class="empty-state" style="padding:30px 0;"><p>No messages yet.</p></div>
       </div>
     </div>
   </div>
@@ -544,45 +546,45 @@
     renderEnquiryCards(_clientEnquiries);
   }
 
-  function renderEnquiryCards(all) {
-    const container = document.getElementById('enquiriesList');
-    if (all.length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>No enquiries yet. Use the "New Enquiry" tab to get started.</p></div>';
-      return;
-    }
-    const sorted = [...all].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
-    container.innerHTML = sorted.map(enq => `
-      <div class="enquiry-item" onclick="openEnquiry(${enq.id})">
-        <h4>${esc(enq.subject)}</h4>
-        <p><strong>Category:</strong> ${esc(enq.category)}</p>
-        <p><strong>Status:</strong> <span style="color:var(--gold);">${esc((enq.status || 'open').toUpperCase())}</span></p>
-        <p style="color:var(--muted);font-size:0.78rem;">${fmtDate(enq.created_at || enq.createdAt)}</p>
-      </div>`).join('');
-  }
 
   window.openEnquiry = async function(id) {
     let enq = _clientEnquiries.find(e => e.id == id);
     if (window.LAApi) {
       const res = await LAApi.enquiries.get(id);
-      if (res.ok) enq = res.data;
+      if (res.ok) { enq = res.data; }
     }
     if (!enq) return;
-    const msgs = (enq.messages || []).map(m => `
-      <div class="msg-item">
-        <div class="msg-sender">${esc(m.sender_name || m.sender || 'Unknown')}</div>
-        <div class="msg-text">${esc(m.message || m.text || '')}</div>
-        <div class="msg-time">${fmtDateTime(m.created_at || m.timestamp)}</div>
-      </div>`).join('') || '<p style="color:var(--muted);text-align:center;padding:20px 0;">No messages yet.</p>';
+    const msgs = (enq.messages || []).map(m => {
+      const fromStaff = m.sender_type === 'admin' || m.sender_type === 'cs';
+      return `
+        <div class="msg-item" style="${fromStaff
+          ? 'border-left:3px solid var(--gold);background:rgba(197,155,45,0.04);'
+          : 'border-left:3px solid rgba(255,255,255,0.12);'}">
+          <div class="msg-sender" style="color:${fromStaff?'var(--gold)':'rgba(248,244,239,0.6);'}">
+            ${esc(m.sender_name || 'Unknown')}
+            ${fromStaff?'<span style="font-size:0.65rem;font-weight:400;color:var(--muted);"> · L.A. Couture</span>':'<span style="font-size:0.65rem;font-weight:400;color:var(--muted);"> · You</span>'}
+          </div>
+          <div class="msg-text" style="white-space:pre-line;margin-top:5px;">${esc(m.message || '')}</div>
+          <div class="msg-time">${fmtDateTime(m.created_at)}</div>
+        </div>`;
+    }).join('') || '<p style="color:var(--muted);text-align:center;padding:20px 0;">No messages yet.</p>';
+
+    const closed = (enq.status||'open') === 'closed';
     document.getElementById('enqDetail').innerHTML = `
-      <h3 style="color:var(--ivory);margin:0 0 16px;font-family:var(--font-display);font-weight:400;">${esc(enq.subject)}</h3>
-      <p style="color:var(--text);margin-bottom:6px;"><strong>Category:</strong> ${esc(enq.category)}</p>
-      <p style="color:var(--text);margin-bottom:20px;"><strong>Status:</strong> <span style="color:var(--gold);">${esc((enq.status || 'open').toUpperCase())}</span></p>
-      <div style="max-height:240px;overflow-y:auto;">${msgs}</div>
-      <div class="form-group" style="margin-top:20px;">
-        <label>Your Reply</label>
-        <textarea id="replyText" placeholder="Type your message..." style="min-height:90px;width:100%;padding:11px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--ivory);font-family:inherit;outline:none;resize:vertical;"></textarea>
+      <h3 style="color:var(--ivory);margin:0 0 10px;font-family:var(--font-display);font-weight:400;">${esc(enq.subject)}</h3>
+      <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+        <span class="badge badge-${esc((enq.status||'open').toLowerCase())}">${esc(enq.status||'open')}</span>
+        <span style="color:var(--muted);font-size:0.78rem;align-self:center;">${esc(enq.category||'')}</span>
       </div>
-      <button class="btn-submit" onclick="sendClientReply(${enq.id})">Send Message</button>`;
+      <div style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">${msgs}</div>
+      ${closed ? '<p style="color:var(--muted);font-size:0.8rem;text-align:center;margin-top:14px;">This thread is closed. Start a New Message to continue.</p>' : `
+      <div class="form-group" style="margin-top:16px;">
+        <label>Reply to CS</label>
+        <textarea id="replyText" placeholder="Type your reply…" style="min-height:80px;width:100%;padding:11px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--ivory);font-family:inherit;outline:none;resize:vertical;"></textarea>
+      </div>
+      <button class="btn-submit" onclick="sendClientReply(${enq.id})">Send Reply</button>`}`;
+    // Refresh inbox badge
+    await renderEnquiries();
     document.getElementById('enqModal').classList.add('open');
   };
 
@@ -600,15 +602,61 @@
     document.getElementById('enqModal').classList.remove('open');
   };
 
-  /* ── MESSAGES ───────────────────────── */
+  /* ── Switch to New Message tab ──────── */
+  window.switchToNewMessage = function() {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-tab="enquiry"]').classList.add('active');
+    document.getElementById('enquiry').classList.add('active');
+  };
+
+  /* ── Enquiry card renderer (inbox-style) */
+  function renderEnquiryCards(all) {
+    const container = document.getElementById('enquiriesList');
+    if (all.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>No messages yet. Use "New Message" to start a conversation with CS.</p></div>';
+      return;
+    }
+    const sorted = [...all].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+    // Count unread (last message from staff not read by client)
+    let unread = 0;
+    container.innerHTML = sorted.map(enq => {
+      const msgs = enq.messages || [];
+      const lastMsg = msgs[msgs.length - 1];
+      const isFromStaff = lastMsg && (lastMsg.sender_type === 'admin' || lastMsg.sender_type === 'cs');
+      const isUnread = isFromStaff && !lastMsg.is_read;
+      if (isUnread) unread++;
+      const preview = lastMsg ? esc(lastMsg.message || '').substring(0, 80) : '';
+      const cat = enq.category === 'welcome' ? '🎉 Welcome' : esc(enq.category || 'general');
+      return `
+        <div class="enquiry-item" onclick="openEnquiry(${enq.id})" style="${isUnread?'border-color:rgba(197,155,45,0.5);background:rgba(197,155,45,0.04);':''}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+            <h4 style="margin:0;${isUnread?'color:var(--gold);':''}">
+              ${isUnread?'<span style="display:inline-block;width:8px;height:8px;background:var(--gold);border-radius:50%;margin-right:6px;vertical-align:middle;"></span>':''}${esc(enq.subject)}
+            </h4>
+            <span class="badge badge-${esc((enq.status||'open').toLowerCase())}" style="flex-shrink:0;font-size:0.6rem;">${esc(enq.status||'open')}</span>
+          </div>
+          ${preview ? `<p style="color:${isFromStaff?'rgba(248,244,239,0.75)':'var(--muted)'};font-size:0.82rem;margin:4px 0 6px;line-height:1.5;">${isFromStaff?'<strong style="color:var(--gold);">CS:</strong> ':'You: '}${preview}${(lastMsg?.message||'').length>80?'…':''}</p>` : ''}
+          <p style="color:var(--muted);font-size:0.72rem;">${cat} &middot; ${fmtDate(enq.updated_at||enq.created_at)}</p>
+        </div>`;
+    }).join('');
+    // Update inbox badge
+    const badge = document.getElementById('inboxBadge');
+    if (badge) {
+      if (unread > 0) { badge.textContent = unread; badge.style.display = 'inline'; }
+      else { badge.style.display = 'none'; }
+    }
+  }
+
+  /* ── MESSAGES (all messages chronological) ── */
   async function renderMessages() {
     if (_clientEnquiries.length === 0 && window.LAApi) {
       const res = await LAApi.enquiries.list();
       if (res.ok) _clientEnquiries = res.data;
     }
     const all = [];
-    _clientEnquiries.forEach(e => {
-      (e.messages || []).forEach(m => all.push({ ...m, subject: e.subject }));
+    _clientEnquiries.forEach(enq => {
+      (enq.messages || []).forEach(m => all.push({ ...m, subject: enq.subject }));
     });
     all.sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp));
     const container = document.getElementById('messagesList');
@@ -616,18 +664,27 @@
       container.innerHTML = '<div class="empty-state" style="padding:30px 0;"><p>No messages yet.</p></div>';
       return;
     }
-    container.innerHTML = all.map(m => `
-      <div class="msg-item">
-        <div class="msg-sender">${esc(m.sender_name || m.sender || 'Unknown')} &mdash; Re: ${esc(m.subject)}</div>
-        <div class="msg-text">${esc(m.message || m.text || '')}</div>
-        <div class="msg-time">${fmtDateTime(m.created_at || m.timestamp)}</div>
-      </div>`).join('');
+    container.innerHTML = all.map(m => {
+      const fromStaff = m.sender_type === 'admin' || m.sender_type === 'cs';
+      return `
+        <div class="msg-item" style="${fromStaff?'border-left:3px solid var(--gold);padding-left:13px;':'border-left:3px solid rgba(255,255,255,0.1);padding-left:13px;'}">
+          <div class="msg-sender" style="color:${fromStaff?'var(--gold)':'rgba(248,244,239,0.65)'};">
+            ${esc(m.sender_name || 'Unknown')} ${fromStaff?'<span style="font-size:0.65rem;color:var(--muted);font-weight:400;">(L.A. Couture Team)</span>':''}
+            <span style="font-size:0.68rem;color:var(--muted);font-weight:400;margin-left:8px;">Re: ${esc(m.subject)}</span>
+          </div>
+          <div class="msg-text" style="margin-top:6px;white-space:pre-line;">${esc(m.message || '')}</div>
+          <div class="msg-time">${fmtDateTime(m.created_at || m.timestamp)}</div>
+        </div>`;
+    }).join('');
   }
 
   /* ── Logout ─────────────────────────── */
   window.doLogout = async function() {
     if (confirm('Logout from your account?')) await AuthSystem.logout();
   };
+
+  /* ── Auto-load inbox on page open ───── */
+  renderEnquiries();
 
   /* ── Close modals on backdrop click ─── */
   document.getElementById('enqModal').addEventListener('click', function(e) {

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Send a Message — L.A. Couture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-sans);background:var(--navy);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+    .page-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+    .card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:44px;max-width:520px;width:100%;backdrop-filter:blur(10px);}
+    .card-logo{text-align:center;margin-bottom:32px;}
+    .card-logo img{width:60px;height:60px;border-radius:12px;object-fit:cover;margin-bottom:12px;}
+    .card-logo h1{font-family:var(--font-display);font-size:1.3rem;color:var(--ivory);font-weight:400;margin-bottom:4px;}
+    .card-logo p{font-size:0.82rem;color:var(--muted);}
+    .form-group{margin-bottom:18px;}
+    .form-group label{display:block;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:7px;}
+    .form-group input,.form-group textarea,.form-group select{width:100%;padding:11px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:9px;color:var(--ivory);font-family:inherit;font-size:0.9rem;outline:none;transition:border-color 0.2s;}
+    .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--gold);}
+    .form-group input::placeholder,.form-group textarea::placeholder{color:rgba(248,244,239,0.35);}
+    .form-group textarea{min-height:120px;resize:vertical;}
+    .form-group select option{background:#13121a;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .btn-send{width:100%;padding:13px;background:linear-gradient(135deg,var(--gold) 0%,#a8751a 100%);color:var(--navy);border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.08em;transition:all 0.2s;}
+    .btn-send:hover{opacity:0.9;transform:translateY(-1px);}
+    .btn-send:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+    .error-box{background:rgba(255,69,69,0.1);border:1px solid rgba(255,69,69,0.3);color:#ff6b6b;padding:12px 14px;border-radius:8px;margin-bottom:18px;display:none;font-size:0.85rem;}
+    .success-box{display:none;text-align:center;padding:12px 0;}
+    .success-box .icon{font-size:2.5rem;margin-bottom:12px;}
+    .success-box h2{font-family:var(--font-display);font-size:1.3rem;color:var(--ivory);font-weight:400;margin-bottom:8px;}
+    .success-box p{font-size:0.85rem;color:var(--muted);line-height:1.7;margin-bottom:20px;}
+    .note-box{background:rgba(197,155,45,0.07);border:1px solid rgba(197,155,45,0.2);border-radius:10px;padding:14px 16px;margin-bottom:22px;font-size:0.82rem;color:rgba(248,244,239,0.65);line-height:1.6;}
+    .note-box strong{color:var(--gold);}
+    .links{display:flex;gap:12px;justify-content:center;margin-top:22px;flex-wrap:wrap;}
+    .links a{color:var(--gold);text-decoration:none;font-size:0.82rem;}
+    .links a:hover{color:var(--gold-light,#d4af37);}
+    .links span{color:rgba(255,255,255,0.2);}
+    @media(max-width:540px){.form-row{grid-template-columns:1fr;}.card{padding:28px 20px;}}
+  </style>
+</head>
+<body>
+  <div class="topbar" style="padding:6px 24px;">
+    <div class="topbar-inner">
+      <span id="clock-date"></span>
+      <span id="clock-time"></span>
+    </div>
+  </div>
+
+  <div class="page-wrap">
+    <div class="card">
+      <div class="card-logo">
+        <img src="img/logo2.jpg" alt="L.A. Couture">
+        <h1>Send Us a Message</h1>
+        <p>No account needed — we'll respond to your email</p>
+      </div>
+
+      <!-- Success state -->
+      <div class="success-box" id="successBox">
+        <div class="icon">✉️</div>
+        <h2>Message Sent!</h2>
+        <p>Thank you for reaching out. Our Customer Service team will respond to your email within 24 hours.</p>
+        <button class="btn-send" onclick="resetForm()" style="width:auto;padding:10px 28px;">Send Another</button>
+      </div>
+
+      <!-- Form -->
+      <div id="formWrap">
+        <div class="note-box">
+          Your message goes directly to our <strong>Customer Service &amp; Admin</strong> team. We respond within <strong>24 hours</strong> on business days.
+        </div>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <form id="msgForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Full Name *</label>
+              <input type="text" id="name" placeholder="Your name" required>
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone</label>
+              <input type="tel" id="phone" placeholder="+234 …">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Address *</label>
+            <input type="email" id="email" placeholder="your@email.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="type">Message Type</label>
+            <select id="type">
+              <option value="General Enquiry">General Enquiry</option>
+              <option value="Order Enquiry">Order / Purchase Enquiry</option>
+              <option value="Bespoke Request">Bespoke / Custom Order</option>
+              <option value="Styling Consultation">Styling Consultation</option>
+              <option value="Complaint">Complaint</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="message">Your Message *</label>
+            <textarea id="message" placeholder="Tell us how we can help…" required></textarea>
+          </div>
+
+          <button type="submit" class="btn-send" id="sendBtn">Send Message to CS</button>
+        </form>
+
+        <div class="links">
+          <a href="index.html">← Home</a>
+          <span>|</span>
+          <a href="client-login.html">Client Login</a>
+          <span>|</span>
+          <a href="client-register.html">Create Account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    const form    = document.getElementById('msgForm');
+    const errBox  = document.getElementById('errorBox');
+    const sendBtn = document.getElementById('sendBtn');
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      sendBtn.disabled     = true;
+      sendBtn.textContent  = 'Sending…';
+
+      const name    = document.getElementById('name').value.trim();
+      const email   = document.getElementById('email').value.trim();
+      const phone   = document.getElementById('phone').value.trim();
+      const type    = document.getElementById('type').value;
+      const message = document.getElementById('message').value.trim();
+
+      const res = await LAApi.guestMessage.send({
+        name, email, phone: phone || null,
+        enquiry_type: 'Guest Direct Message — ' + type,
+        message,
+      });
+
+      if (res.ok) {
+        document.getElementById('formWrap').style.display = 'none';
+        document.getElementById('successBox').style.display = 'block';
+      } else {
+        const errs = res.data?.errors;
+        errBox.textContent = errs
+          ? Object.values(errs).flat().join(' ')
+          : (res.data?.message || 'Could not send. Please try again.');
+        errBox.style.display = 'block';
+        sendBtn.disabled    = false;
+        sendBtn.textContent = 'Send Message to CS';
+      }
+    });
+
+    window.resetForm = function () {
+      form.reset();
+      document.getElementById('formWrap').style.display = 'block';
+      document.getElementById('successBox').style.display = 'none';
+    };
+  })();
+  </script>
+</body>
+</html>

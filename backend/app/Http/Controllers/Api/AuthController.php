@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enquiry;
+use App\Models\EnquiryMessage;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -147,6 +149,9 @@ class AuthController extends Controller
             'interests'      => $request->interests ? strip_tags($request->interests) : null,
         ]);
 
+        // Auto-send welcome message to client inbox
+        $this->sendWelcomeMessage($client);
+
         return response()->json([
             'message'     => 'Registration successful! Awaiting staff approval.',
             'brand_login' => $brandEmail,
@@ -157,6 +162,34 @@ class AuthController extends Controller
                 'brand_email' => $client->brand_email,
             ],
         ], 201);
+    }
+
+    private function sendWelcomeMessage(User $client): void
+    {
+        $firstName = explode(' ', $client->name)[0];
+        $body = "Dear {$firstName},\n\nWelcome to L.A. Couture — Abuja's premier luxury menswear house!\n\nYour account has been created and is currently under review by our team. You will have full access once approved.\n\nHere's what awaits you:\n• Exclusive bespoke collections curated just for you\n• Priority order management and tracking\n• Dedicated customer service support\n• Access to our full gallery and lookbook\n\nYour brand login email: {$client->brand_email}\n\nIf you have any questions before approval, feel free to send us a message through your inbox.\n\nWe look forward to serving you.\n\n— The L.A. Couture Team";
+
+        try {
+            $enquiry = Enquiry::create([
+                'user_id'      => $client->id,
+                'client_name'  => $client->name,
+                'client_email' => $client->email,
+                'subject'      => "Welcome to L.A. Couture, {$firstName}!",
+                'category'     => 'welcome',
+                'description'  => $body,
+                'status'       => 'open',
+            ]);
+
+            EnquiryMessage::create([
+                'enquiry_id'  => $enquiry->id,
+                'user_id'     => null,
+                'sender_type' => 'admin',
+                'sender_name' => 'L.A. Couture Team',
+                'message'     => $body,
+            ]);
+        } catch (\Throwable $e) {
+            // Non-fatal — registration still succeeds
+        }
     }
 
     private function generateBrandEmail(string $firstName): string

@@ -182,6 +182,7 @@ const LAApi = (() => {
     async allOrders()                     { return request('GET',    '/admin/orders',                  null,     true); },
     async approveClient(id)               { return request('POST',   `/admin/clients/${id}/approve`,   {},       true); },
     async rejectClient(id, reason)        { return request('POST',   `/admin/clients/${id}/reject`,    { reason }, true); },
+    async messageClient(id, subject, msg) { return request('POST',   `/admin/clients/${id}/message`,  { subject, message: msg }, true); },
     async orderStatus(id, status)         { return request('PUT',    `/admin/orders/${id}/status`,     { status }, true); },
     async enquiryStatus(id, status)       { return request('PUT',    `/admin/enquiries/${id}/status`,  { status }, true); },
     async contactForms()                  { return request('GET',    '/admin/contact-forms',           null,     true); },
@@ -196,12 +197,28 @@ const LAApi = (() => {
     async deleteStaff(id)                 { return request('DELETE', `/admin/staff/${id}`,             null,     true); },
   };
 
+  /* ── Internal staff messages (CS ↔ Admin) ──── */
+  const staffMessages = {
+    async inbox()      { return request('GET',    '/staff-messages/inbox',      null, true); },
+    async sent()       { return request('GET',    '/staff-messages/sent',       null, true); },
+    async unread()     { return request('GET',    '/staff-messages/unread',     null, true); },
+    async recipients() { return request('GET',    '/staff-messages/recipients', null, true); },
+    async send(data)   { return request('POST',   '/staff-messages',            data, true); },
+    async get(id)      { return request('GET',    `/staff-messages/${id}`,      null, true); },
+    async delete(id)   { return request('DELETE', `/staff-messages/${id}`,      null, true); },
+  };
+
   /* ── Public receipt lookup ─────────────────── */
   const receipts = {
     async get(token) { return request('GET', `/receipts/${token}`); },
   };
 
-  return { auth, products, orders, enquiries, contact, admin, receipts };
+  /* ── Guest direct message (no auth needed) ─── */
+  const guestMessage = {
+    async send(data) { return request('POST', '/guest-message', data); },
+  };
+
+  return { auth, products, orders, enquiries, contact, admin, staffMessages, receipts, guestMessage };
 })();
 
 window.LAApi = LAApi;

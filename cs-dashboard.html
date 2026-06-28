@@ -145,6 +145,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
         Collections
       </button>
+      <button class="cs-nav-btn" data-section="staffmsg" id="staffMsgNavBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Staff Messages <span id="csUnreadBadge" style="display:none;background:#4caf50;color:#0a090e;border-radius:999px;font-size:0.6rem;padding:1px 6px;margin-left:2px;font-weight:700;"></span>
+      </button>
       <button class="cs-nav-btn" data-section="records">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         Records
@@ -239,6 +243,22 @@
       <div class="product-grid" id="productGrid"><p style="color:var(--muted);">Loading…</p></div>
     </section>
 
+    <!-- STAFF MESSAGES (CS ↔ Admin) -->
+    <section id="staffmsg" class="cs-section">
+      <h2 class="cs-section-title">Staff Messages</h2>
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="action-btn active" id="smInboxBtn" onclick="showSMPanel('inbox',this)">Inbox</button>
+        <button class="action-btn" id="smSentBtn" onclick="showSMPanel('sent',this)">Sent</button>
+        <button class="action-btn green" onclick="openComposeSM()">+ Compose</button>
+      </div>
+      <div id="smInbox">
+        <p style="color:var(--muted);">Loading…</p>
+      </div>
+      <div id="smSent" style="display:none;">
+        <p style="color:var(--muted);">Loading…</p>
+      </div>
+    </section>
+
     <!-- RECORDS -->
     <section id="records" class="cs-section">
       <h2 class="cs-section-title">Complete Records</h2>
@@ -331,7 +351,7 @@
   function dispatch(sec) {
     ({overview:loadOverview, orders:loadOrders, registrations:loadRegistrations,
       enquiries:loadEnquiries, contact:loadContactForms, collections:loadCollections,
-      records:loadRecords})[sec]?.();
+      records:loadRecords, staffmsg:loadStaffMessages})[sec]?.();
   }
 
   /* ── Helpers ────────────────────────── */
@@ -767,6 +787,148 @@
       </table></div>`;
   }
 
+  /* ══════════════════ STAFF MESSAGES ══════════════════ */
+  let _smInbox = [], _smSent = [], _smRecipients = [];
+
+  async function loadStaffMessages() {
+    const [inboxRes, sentRes, recRes, unreadRes] = await Promise.all([
+      LAApi.staffMessages.inbox(),
+      LAApi.staffMessages.sent(),
+      LAApi.staffMessages.recipients(),
+      LAApi.staffMessages.unread(),
+    ]);
+    if (inboxRes.ok) _smInbox = inboxRes.data;
+    if (sentRes.ok)  _smSent  = sentRes.data;
+    if (recRes.ok)   _smRecipients = recRes.data;
+    if (unreadRes.ok) {
+      const cnt = unreadRes.data.count || 0;
+      const badge = document.getElementById('csUnreadBadge');
+      if (badge) { badge.textContent = cnt; badge.style.display = cnt > 0 ? 'inline' : 'none'; }
+    }
+    renderSMInbox();
+  }
+
+  window.showSMPanel = function(panel, btn) {
+    document.getElementById('smInboxBtn').classList.remove('active');
+    document.getElementById('smSentBtn').classList.remove('active');
+    btn.classList.add('active');
+    document.getElementById('smInbox').style.display = panel === 'inbox' ? 'block' : 'none';
+    document.getElementById('smSent').style.display  = panel === 'sent'  ? 'block' : 'none';
+    if (panel === 'sent') renderSMSent();
+    else renderSMInbox();
+  };
+
+  function renderSMInbox() {
+    const el = document.getElementById('smInbox');
+    if (_smInbox.length === 0) { el.innerHTML = '<p style="color:var(--muted);text-align:center;padding:32px 0;">No messages in inbox.</p>'; return; }
+    el.innerHTML = _smInbox.map(m => {
+      const unread = !m.read_at;
+      return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,${unread?'0.15':'0.06'});border-radius:10px;padding:16px 18px;margin-bottom:10px;cursor:pointer;${unread?'border-left:3px solid #4caf50;':''}" onclick="viewSM(${m.id})">
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <strong style="color:${unread?'#4caf50':'var(--ivory)'};font-size:0.88rem;">${unread?'● ':''}${esc(m.subject)}</strong>
+          <span style="color:var(--muted);font-size:0.72rem;white-space:nowrap;">${fmtDate(m.created_at)}</span>
+        </div>
+        <p style="color:var(--muted);font-size:0.8rem;margin:0;">From: <span style="color:rgba(248,244,239,0.6);">${esc(m.from?.name||'Unknown')} (${esc(m.from?.role||'')})</span></p>
+        <p style="color:var(--muted);font-size:0.78rem;margin-top:4px;">${esc((m.body||'').substring(0,80))}${(m.body||'').length>80?'…':''}</p>
+      </div>`;
+    }).join('');
+  }
+
+  function renderSMSent() {
+    const el = document.getElementById('smSent');
+    if (_smSent.length === 0) { el.innerHTML = '<p style="color:var(--muted);text-align:center;padding:32px 0;">No sent messages.</p>'; return; }
+    el.innerHTML = _smSent.map(m => `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 18px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <strong style="color:var(--ivory);font-size:0.88rem;">${esc(m.subject)}</strong>
+          <span style="color:var(--muted);font-size:0.72rem;white-space:nowrap;">${fmtDate(m.created_at)}</span>
+        </div>
+        <p style="color:var(--muted);font-size:0.8rem;margin:0;">To: <span style="color:rgba(248,244,239,0.6);">${esc(m.to?.name||'Unknown')} (${esc(m.to?.role||'')})</span>
+          <span style="margin-left:8px;font-size:0.7rem;color:${m.read_at?'#4caf50':'var(--muted)'};">${m.read_at?'✓ Read':'Unread'}</span>
+        </p>
+        <p style="color:var(--muted);font-size:0.78rem;margin-top:4px;">${esc((m.body||'').substring(0,80))}${(m.body||'').length>80?'…':''}</p>
+      </div>`).join('');
+  }
+
+  window.viewSM = async function(id) {
+    const res = await LAApi.staffMessages.get(id);
+    if (!res.ok) return;
+    const m = res.data;
+    // Refresh unread count
+    const unreadRes = await LAApi.staffMessages.unread();
+    if (unreadRes.ok) {
+      const cnt = unreadRes.data.count || 0;
+      const badge = document.getElementById('csUnreadBadge');
+      if (badge) { badge.textContent = cnt; badge.style.display = cnt > 0 ? 'inline' : 'none'; }
+    }
+    _smInbox = _smInbox.map(x => x.id === id ? { ...x, read_at: new Date().toISOString() } : x);
+    document.getElementById('modalBody').innerHTML = `
+      <p style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">Staff Message</p>
+      <h3 style="color:var(--ivory);font-family:var(--font-display);font-weight:400;margin-bottom:12px;">${esc(m.subject)}</h3>
+      <p style="margin-bottom:6px;font-size:0.85rem;"><strong>From:</strong> ${esc(m.from?.name)} (${esc(m.from?.role)})</p>
+      <p style="margin-bottom:16px;font-size:0.82rem;color:var(--muted);">${fmtDT(m.created_at)}</p>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:16px;font-size:0.88rem;line-height:1.7;white-space:pre-line;">${esc(m.body)}</div>
+      <div class="form-group" style="margin-top:18px;">
+        <label>Reply</label>
+        <textarea id="smReplyBody" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-family:inherit;font-size:0.88rem;outline:none;min-height:80px;resize:vertical;" placeholder="Type your reply…"></textarea>
+      </div>
+      <button class="btn-submit" onclick="replySM(${m.from?.id},'Re: ${esc(m.subject).replace(/'/g,'').substring(0,50)}',${m.id})" style="padding:10px 20px;font-size:0.85rem;">Send Reply</button>
+      <button class="action-btn red" onclick="deleteSM(${m.id})" style="padding:10px 14px;margin-left:8px;">Delete</button>`;
+    openModal('Staff Message');
+    renderSMInbox();
+  };
+
+  window.openComposeSM = async function() {
+    if (_smRecipients.length === 0) {
+      const res = await LAApi.staffMessages.recipients();
+      if (res.ok) _smRecipients = res.data;
+    }
+    const opts = _smRecipients.map(r => `<option value="${r.id}">${esc(r.name)} (${esc(r.role)})</option>`).join('');
+    document.getElementById('modalBody').innerHTML = `
+      <p style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;">New Staff Message</p>
+      <div class="form-group">
+        <label>To</label>
+        <select id="smTo" style="width:100%;padding:10px 14px;background:rgba(17,16,23,0.98);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-size:0.88rem;outline:none;">
+          <option value="">Select recipient</option>${opts}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <input type="text" id="smSubject" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-family:inherit;font-size:0.88rem;outline:none;" placeholder="Message subject">
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="smBody" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-family:inherit;font-size:0.88rem;outline:none;min-height:120px;resize:vertical;" placeholder="Type your message…"></textarea>
+      </div>
+      <button class="btn-submit" onclick="sendSM()" style="padding:10px 20px;font-size:0.85rem;">Send Message</button>`;
+    openModal('Compose Staff Message');
+  };
+
+  window.sendSM = async function() {
+    const to_id  = parseInt(document.getElementById('smTo')?.value);
+    const subject = document.getElementById('smSubject')?.value.trim();
+    const body    = document.getElementById('smBody')?.value.trim();
+    if (!to_id || !subject || !body) { alert('Please fill all fields.'); return; }
+    const res = await LAApi.staffMessages.send({ to_id, subject, body });
+    if (res.ok) { closeModal(); await loadStaffMessages(); }
+    else alert(res.data?.message || 'Failed to send message.');
+  };
+
+  window.replySM = async function(to_id, subject, replied_to_id) {
+    const body = document.getElementById('smReplyBody')?.value.trim();
+    if (!body) { alert('Please type a reply.'); return; }
+    const res = await LAApi.staffMessages.send({ to_id, subject, body, replied_to_id });
+    if (res.ok) { closeModal(); await loadStaffMessages(); }
+    else alert(res.data?.message || 'Failed to send reply.');
+  };
+
+  window.deleteSM = async function(id) {
+    if (!confirm('Delete this message?')) return;
+    await LAApi.staffMessages.delete(id);
+    closeModal();
+    await loadStaffMessages();
+  };
+
   /* ── Logout ─────────────────────────── */
   window.doLogout = async function() {
     if (confirm('Sign out of Customer Service portal?')) {
@@ -777,6 +939,14 @@
 
   /* ── Initial load ───────────────────── */
   loadOverview();
+  // Show unread staff message badge on load
+  LAApi.staffMessages.unread().then(res => {
+    if (res.ok) {
+      const cnt = res.data.count || 0;
+      const badge = document.getElementById('csUnreadBadge');
+      if (badge) { badge.textContent = cnt; badge.style.display = cnt > 0 ? 'inline' : 'none'; }
+    }
+  });
 
 })();
 </script>

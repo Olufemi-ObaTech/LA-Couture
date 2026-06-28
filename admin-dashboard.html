@@ -165,7 +165,7 @@
       <li><button class="nav-btn" data-section="registrations">&#128100; Registrations</button></li>
       <li><button class="nav-btn" data-section="enquiries">&#128172; Enquiries</button></li>
       <li><button class="nav-btn" data-section="contact">&#9993; Contact Forms</button></li>
-      <li><button class="nav-btn" data-section="messages">&#128140; Messages</button></li>
+      <li><button class="nav-btn" data-section="messages">&#128140; Staff Messages <span id="adminUnreadBadge" style="display:none;background:var(--gold);color:#09080b;border-radius:999px;font-size:0.65rem;padding:1px 6px;font-weight:700;"></span></button></li>
       <li><button class="nav-btn" data-section="records">&#128196; Records</button></li>
     </ul>
     <div class="sidebar-footer">
@@ -259,10 +259,29 @@
       </div>
     </div>
 
-    <!-- MESSAGES -->
+    <!-- STAFF MESSAGES (CS ↔ Admin) -->
     <div id="messages" class="section">
-      <h2 style="color:var(--ivory);margin:0 0 20px;font-family:var(--font-display);font-weight:400;">Client Messages</h2>
-      <div id="messagesContainer"><p style="text-align:center;color:var(--muted);">No messages yet</p></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <h2 style="color:var(--ivory);margin:0;font-family:var(--font-display);font-weight:400;">Staff Messages</h2>
+        <button class="action-btn green" onclick="openAdminComposeSM()">&#9998; Compose</button>
+      </div>
+      <p style="color:var(--muted);font-size:0.82rem;margin-bottom:18px;">Internal messaging between Admin and Customer Service staff.</p>
+
+      <!-- Inbox / Sent tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button id="adminSmInboxBtn" class="rec-tab active" onclick="showAdminSMPanel('adminSmInbox',this)">&#128229; Inbox</button>
+        <button id="adminSmSentBtn"  class="rec-tab"        onclick="showAdminSMPanel('adminSmSent',this)">&#128228; Sent</button>
+      </div>
+
+      <!-- Inbox panel -->
+      <div id="adminSmInbox">
+        <div id="adminSmInboxList"><p style="text-align:center;color:var(--muted);">Loading…</p></div>
+      </div>
+
+      <!-- Sent panel -->
+      <div id="adminSmSent" style="display:none;">
+        <div id="adminSmSentList"><p style="text-align:center;color:var(--muted);">Loading…</p></div>
+      </div>
     </div>
 
     <!-- RECORDS -->
@@ -388,6 +407,17 @@
                   registrations: loadRegistrations, enquiries: loadEnquiries,
                   contact: loadContactForms, messages: loadMessages, records: loadRecords };
     if (map[sec]) map[sec]();
+  }
+
+  /* ── load unread staff-message badge on startup ─ */
+  async function initAdminUnreadBadge() {
+    if (!window.LAApi) return;
+    const res = await LAApi.staffMessages.unread();
+    if (res.ok) {
+      const cnt = res.data?.count || 0;
+      const badge = document.getElementById('adminUnreadBadge');
+      badge.textContent = cnt; badge.style.display = cnt > 0 ? 'inline' : 'none';
+    }
   }
 
   /* ── Records tab switcher ─────────── */
@@ -820,8 +850,47 @@
       <p><strong>Status:</strong> <span class="badge badge-${e(st)}">${e(st)}</span></p>
       <p><strong>Interests:</strong> ${e(c.interests || 'N/A')}</p>
       <p><strong>Registered:</strong> ${fmtDateTime(c.created_at || c.registeredAt)}</p>
-      ${c.rejection_reason ? `<p><strong>Rejection Reason:</strong> ${e(c.rejection_reason)}</p>` : ''}`;
+      ${c.rejection_reason ? `<p><strong>Rejection Reason:</strong> ${e(c.rejection_reason)}</p>` : ''}
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:18px 0;">
+      <div id="msgClientArea">
+        <button class="action-btn green" onclick="openMessageClientForm(${c.id},'${e(c.name).replace(/'/g,'&#39;')}')">&#128140; Message This Client</button>
+      </div>`;
     openModal();
+  };
+
+  window.openMessageClientForm = function(clientId, clientName) {
+    document.getElementById('msgClientArea').innerHTML = `
+      <h4 style="color:var(--gold);margin:0 0 12px;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.08em;">Send Message to ${escapeHtml(clientName)}</h4>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px;">Subject</label>
+        <input id="msgClientSubject" type="text" placeholder="Message subject…"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-size:0.88rem;outline:none;">
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px;">Message</label>
+        <textarea id="msgClientBody" rows="4" placeholder="Type your message…"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-size:0.88rem;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="action-btn green" onclick="sendMessageToClient(${clientId})">Send Message</button>
+        <button class="action-btn" onclick="viewClient(${clientId})">Cancel</button>
+      </div>
+      <div id="msgClientStatus" style="margin-top:10px;font-size:0.82rem;"></div>`;
+  };
+
+  window.sendMessageToClient = async function(clientId) {
+    const subject = (document.getElementById('msgClientSubject').value || '').trim();
+    const body    = (document.getElementById('msgClientBody').value    || '').trim();
+    const st      = document.getElementById('msgClientStatus');
+    if (!subject || !body) { st.style.color = '#ff6b6b'; st.textContent = 'Subject and message are required.'; return; }
+    st.style.color = 'var(--muted)'; st.textContent = 'Sending…';
+    const res = await LAApi.admin.messageClient(clientId, subject, body);
+    if (res.ok) {
+      st.style.color = '#4caf50'; st.textContent = 'Message sent successfully!';
+      setTimeout(closeModal, 1800);
+    } else {
+      st.style.color = '#ff6b6b'; st.textContent = res.data?.message || 'Failed to send message.';
+    }
   };
 
   /* ══════════════════════════════════════
@@ -971,25 +1040,209 @@
   };
 
   /* ══════════════════════════════════════
-     MESSAGES — derived from enquiries
+     STAFF MESSAGES — CS ↔ Admin
   ══════════════════════════════════════ */
+  let _adminSMInbox = [], _adminSMSent = [], _adminSMRecipients = [];
+
   async function loadMessages() {
-    const all = [];
-    if (_enquiries.length === 0 && window.LAApi) {
-      const res = await LAApi.enquiries.list();
-      if (res.ok) _enquiries = res.data;
+    if (!window.LAApi) return;
+    const [inboxRes, sentRes, unreadRes] = await Promise.all([
+      LAApi.staffMessages.inbox(),
+      LAApi.staffMessages.sent(),
+      LAApi.staffMessages.unread(),
+    ]);
+    if (inboxRes.ok) { _adminSMInbox = inboxRes.data || []; }
+    if (sentRes.ok)  { _adminSMSent  = sentRes.data  || []; }
+    const badge = document.getElementById('adminUnreadBadge');
+    if (unreadRes.ok) {
+      const cnt = unreadRes.data?.count || 0;
+      badge.textContent = cnt; badge.style.display = cnt > 0 ? 'inline' : 'none';
     }
-    _enquiries.forEach(e => (e.messages || []).forEach(m => all.push({ ...m, subject: e.subject })));
-    all.sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp));
-    const c = document.getElementById('messagesContainer');
-    if (all.length === 0) { c.innerHTML = '<p style="text-align:center;color:var(--muted);">No messages yet</p>'; return; }
-    c.innerHTML = all.map(m => `
-      <div class="msg-item" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;margin-bottom:12px;">
-        <div class="msg-sender">${e(m.sender_name || m.sender || 'Unknown')} &mdash; Re: ${e(m.subject)}</div>
-        <div class="msg-text" style="margin:8px 0;">${e(m.message || m.text || '')}</div>
-        <div class="msg-time">${fmtDateTime(m.created_at || m.timestamp)}</div>
-      </div>`).join('');
+    renderAdminSMInbox();
+    renderAdminSMSent();
   }
+
+  window.showAdminSMPanel = function(panelId, btn) {
+    document.querySelectorAll('#messages .rec-tab').forEach(t => t.classList.remove('active'));
+    ['adminSmInbox','adminSmSent'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+    btn.classList.add('active');
+    const el = document.getElementById(panelId);
+    if (el) el.style.display = 'block';
+  };
+
+  function smCardStyle(isUnread) {
+    return `background:rgba(255,255,255,${isUnread ? '0.07' : '0.03'});border:1px solid rgba(255,255,255,${isUnread ? '0.18' : '0.07'});border-radius:10px;padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color 0.2s;${isUnread ? 'border-left:3px solid var(--gold);' : ''}`;
+  }
+
+  function renderAdminSMInbox() {
+    const c = document.getElementById('adminSmInboxList');
+    if (_adminSMInbox.length === 0) { c.innerHTML = '<p style="text-align:center;color:var(--muted);">Inbox is empty</p>'; return; }
+    c.innerHTML = _adminSMInbox.map(m => {
+      const unread = !m.read_at;
+      return `<div style="${smCardStyle(unread)}" onclick="viewAdminSM(${m.id})">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div>
+            ${unread ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:6px;vertical-align:middle;"></span>' : ''}
+            <strong style="color:var(--ivory);font-size:0.9rem;">${e(m.subject)}</strong>
+          </div>
+          <span style="color:var(--muted);font-size:0.75rem;white-space:nowrap;">${fmtDate(m.created_at)}</span>
+        </div>
+        <div style="color:var(--muted);font-size:0.82rem;margin-top:5px;">From: ${e(m.from?.name || 'Staff')}</div>
+        <div style="color:rgba(248,244,239,0.6);font-size:0.82rem;margin-top:4px;">${e((m.body||'').slice(0,90))}…</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderAdminSMSent() {
+    const c = document.getElementById('adminSmSentList');
+    if (_adminSMSent.length === 0) { c.innerHTML = '<p style="text-align:center;color:var(--muted);">No sent messages</p>'; return; }
+    c.innerHTML = _adminSMSent.map(m => {
+      const readLabel = m.read_at
+        ? `<span style="color:#4caf50;font-size:0.75rem;">&#10003; Read ${fmtDate(m.read_at)}</span>`
+        : `<span style="color:var(--muted);font-size:0.75rem;">&#8226; Unread</span>`;
+      return `<div style="${smCardStyle(false)}" onclick="viewAdminSM(${m.id})">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <strong style="color:var(--ivory);font-size:0.9rem;">${e(m.subject)}</strong>
+          <span style="color:var(--muted);font-size:0.75rem;white-space:nowrap;">${fmtDate(m.created_at)}</span>
+        </div>
+        <div style="color:var(--muted);font-size:0.82rem;margin-top:5px;">To: ${e(m.to?.name || 'Staff')}</div>
+        <div style="margin-top:5px;">${readLabel}</div>
+      </div>`;
+    }).join('');
+  }
+
+  window.viewAdminSM = async function(id) {
+    document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:var(--muted);">Loading…</p>';
+    openModal();
+    const res = await LAApi.staffMessages.get(id);
+    if (!res.ok) { document.getElementById('modalBody').innerHTML = `<p style="color:#ff6b6b;">${e(res.data?.message||'Failed to load message.')}</p>`; return; }
+    const m = res.data;
+    const isInbox = m.to_id === (LAApi.auth.currentUser()?.id);
+    document.getElementById('modalBody').innerHTML = `
+      <h3 style="color:var(--ivory);margin:0 0 4px;font-family:var(--font-display);font-weight:400;">${e(m.subject)}</h3>
+      <div style="color:var(--muted);font-size:0.8rem;margin-bottom:16px;">
+        ${isInbox ? `From: <strong>${e(m.from?.name||'Staff')}</strong>` : `To: <strong>${e(m.to?.name||'Staff')}</strong>`}
+        &nbsp;·&nbsp; ${fmtDateTime(m.created_at)}
+        ${m.read_at ? `&nbsp;·&nbsp; <span style="color:#4caf50;">Read ${fmtDate(m.read_at)}</span>` : ''}
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:16px;color:rgba(248,244,239,0.85);font-size:0.88rem;line-height:1.7;white-space:pre-line;margin-bottom:18px;">${e(m.body)}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        ${isInbox ? `<button class="action-btn green" onclick="openAdminReplyForm(${m.id},${m.from_id},'${e(m.subject).replace(/'/g,'&#39;')}')">&#8617; Reply</button>` : ''}
+        <button class="action-btn red" onclick="deleteAdminSM(${m.id})">Delete</button>
+        <button class="action-btn" onclick="closeModal()">Close</button>
+      </div>
+      <div id="adminReplyArea"></div>`;
+    if (isInbox) {
+      _adminSMInbox = _adminSMInbox.map(x => x.id == id ? { ...x, read_at: m.read_at || new Date().toISOString() } : x);
+      renderAdminSMInbox();
+      const badge = document.getElementById('adminUnreadBadge');
+      const unreadNow = _adminSMInbox.filter(x => !x.read_at).length;
+      badge.textContent = unreadNow; badge.style.display = unreadNow > 0 ? 'inline' : 'none';
+    }
+  };
+
+  window.openAdminReplyForm = function(msgId, toId, subject) {
+    document.getElementById('adminReplyArea').innerHTML = `
+      <h4 style="color:var(--gold);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;margin:0 0 10px;">Reply</h4>
+      <textarea id="adminReplyBody" rows="4" placeholder="Type your reply…"
+        style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-size:0.88rem;outline:none;resize:vertical;margin-bottom:10px;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button class="action-btn green" onclick="sendAdminReply(${toId},'${e(subject).replace(/'/g,'&#39;')}',${msgId})">Send Reply</button>
+        <button class="action-btn" onclick="document.getElementById('adminReplyArea').innerHTML=''">Cancel</button>
+      </div>
+      <div id="adminReplyStatus" style="margin-top:8px;font-size:0.82rem;"></div>`;
+    document.getElementById('adminReplyBody').focus();
+  };
+
+  window.sendAdminReply = async function(toId, subject, repliedToId) {
+    const body = (document.getElementById('adminReplyBody').value || '').trim();
+    const st   = document.getElementById('adminReplyStatus');
+    if (!body) { st.style.color = '#ff6b6b'; st.textContent = 'Message cannot be empty.'; return; }
+    st.style.color = 'var(--muted)'; st.textContent = 'Sending…';
+    const res = await LAApi.staffMessages.send({
+      to_id: toId,
+      subject: 'Re: ' + subject.replace(/^Re:\s*/i,''),
+      body,
+      replied_to_id: repliedToId,
+    });
+    if (res.ok) {
+      st.style.color = '#4caf50'; st.textContent = 'Reply sent!';
+      _adminSMSent.unshift(res.data);
+      renderAdminSMSent();
+      setTimeout(closeModal, 1500);
+    } else {
+      st.style.color = '#ff6b6b'; st.textContent = res.data?.message || 'Failed to send.';
+    }
+  };
+
+  window.openAdminComposeSM = async function() {
+    document.getElementById('modalBody').innerHTML = '<p style="text-align:center;color:var(--muted);">Loading recipients…</p>';
+    openModal();
+    const res = await LAApi.staffMessages.recipients();
+    if (!res.ok || !(res.data || []).length) {
+      document.getElementById('modalBody').innerHTML = '<p style="color:#ff6b6b;">No staff recipients available.</p>'; return;
+    }
+    _adminSMRecipients = res.data;
+    const opts = _adminSMRecipients.map(r =>
+      `<option value="${r.id}">${e(r.name)} (${e(r.role)})</option>`
+    ).join('');
+    document.getElementById('modalBody').innerHTML = `
+      <h3 style="color:var(--ivory);margin:0 0 16px;font-family:var(--font-display);font-weight:400;">Compose Staff Message</h3>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px;">To</label>
+        <select id="adminSmTo"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-size:0.88rem;outline:none;">
+          ${opts}
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px;">Subject</label>
+        <input id="adminSmSubject" type="text" placeholder="Message subject…"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-size:0.88rem;outline:none;">
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);display:block;margin-bottom:6px;">Message</label>
+        <textarea id="adminSmBody" rows="5" placeholder="Type your message…"
+          style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:var(--ivory);font-size:0.88rem;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="action-btn green" onclick="sendAdminSM()">Send Message</button>
+        <button class="action-btn" onclick="closeModal()">Cancel</button>
+      </div>
+      <div id="adminSmStatus" style="margin-top:10px;font-size:0.82rem;"></div>`;
+    document.getElementById('adminSmSubject').focus();
+  };
+
+  window.sendAdminSM = async function() {
+    const to_id   = parseInt(document.getElementById('adminSmTo').value);
+    const subject = (document.getElementById('adminSmSubject').value || '').trim();
+    const body    = (document.getElementById('adminSmBody').value    || '').trim();
+    const st      = document.getElementById('adminSmStatus');
+    if (!subject || !body) { st.style.color = '#ff6b6b'; st.textContent = 'Subject and message are required.'; return; }
+    st.style.color = 'var(--muted)'; st.textContent = 'Sending…';
+    const res = await LAApi.staffMessages.send({ to_id, subject, body });
+    if (res.ok) {
+      st.style.color = '#4caf50'; st.textContent = 'Message sent!';
+      _adminSMSent.unshift(res.data);
+      renderAdminSMSent();
+      setTimeout(closeModal, 1500);
+    } else {
+      st.style.color = '#ff6b6b'; st.textContent = res.data?.message || 'Failed to send.';
+    }
+  };
+
+  window.deleteAdminSM = async function(id) {
+    if (!confirm('Delete this message?')) return;
+    const res = await LAApi.staffMessages.delete(id);
+    if (res.ok) {
+      _adminSMInbox = _adminSMInbox.filter(m => m.id != id);
+      _adminSMSent  = _adminSMSent.filter(m => m.id != id);
+      renderAdminSMInbox(); renderAdminSMSent();
+      closeModal();
+    } else {
+      alert(res.data?.message || 'Delete failed.');
+    }
+  };
 
   /* ══════════════════════════════════════
      MODAL HELPERS
@@ -1248,6 +1501,7 @@
 
   /* ── Initial load ───────────────────── */
   loadOverview();
+  initAdminUnreadBadge();
 
 })();
 </script>
