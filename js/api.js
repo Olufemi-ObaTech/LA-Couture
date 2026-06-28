@@ -4,12 +4,14 @@
    Falls back to localStorage when backend is unreachable.
    ═══════════════════════════════════════════════════ */
 
-// Priority: local dev → meta tag override → hardcoded Railway URL
-const _isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-const _metaApi  = document.querySelector('meta[name="api-base"]')?.content;
-const API_BASE  = _isLocal
-  ? 'http://127.0.0.1:8000/api'
-  : (_metaApi || 'https://la-couture-production.up.railway.app/api');
+// Use local backend only on VS Code Live Server / explicit dev ports (not XAMPP port 80)
+const _host    = window.location.hostname;
+const _port    = window.location.port;
+const _metaApi = document.querySelector('meta[name="api-base"]')?.content;
+const _isLocal = (_host === '127.0.0.1' || _host === 'localhost') &&
+                 ['5500','5501','5502','8080','3000','4000','8000'].includes(_port);
+const API_BASE = _metaApi ||
+  (_isLocal ? 'http://127.0.0.1:8000/api' : 'https://la-couture-production.up.railway.app/api');
 
 const LAApi = (() => {
   function getToken() {
@@ -26,7 +28,7 @@ const LAApi = (() => {
     localStorage.removeItem('la_token');
   }
 
-  async function request(method, path, body = null, requiresAuth = false) {
+  async function request(method, path, body = null, requiresAuth = false, _attempt = 1) {
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -61,8 +63,12 @@ const LAApi = (() => {
 
       return { ok: resp.ok, status: resp.status, data };
     } catch (err) {
-      // Network error logged only in dev
-      return { ok: false, status: 0, data: { message: 'Cannot reach server. Check your connection.' } };
+      // Auto-retry up to 3 times (Railway cold-start can take a few seconds)
+      if (_attempt < 3) {
+        await new Promise(r => setTimeout(r, 2500));
+        return request(method, path, body, requiresAuth, _attempt + 1);
+      }
+      return { ok: false, status: 0, data: { message: 'Server is waking up — please try again in a moment.' } };
     }
   }
 
