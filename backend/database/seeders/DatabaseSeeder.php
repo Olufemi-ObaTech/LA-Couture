@@ -35,12 +35,12 @@ class DatabaseSeeder extends Seeder
 
         // ── Demo client account ──────────────────────────────────────────────
         User::firstOrCreate(
-            ['email' => 'DomeClients@lacouture.com'],
+            ['email' => 'DemoClients@lacouture.com'],
             [
                 'name'           => 'Demo Client',
                 'brand_email'    => 'demo@lacouture.com',
-                'personal_email' => 'DomeClients@lacouture.com',
-                'password'       => Hash::make(env('DEMO_CLIENT_PASSWORD', 'LaCouture@Domeclients2026!')),
+                'personal_email' => 'DemoClients@lacouture.com',
+                'password'       => Hash::make(env('DEMO_CLIENT_PASSWORD', 'LaCouture@Democlients2026!')),
                 'role'           => 'client',
                 'status'         => 'approved',
                 'phone'          => '+234 900 000 0000',

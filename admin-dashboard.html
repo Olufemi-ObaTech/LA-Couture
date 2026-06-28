@@ -127,6 +127,17 @@
     /* EMPTY STATE */
     .empty-cell{text-align:center;color:var(--muted);padding:32px!important;}
 
+    /* RECORDS */
+    .rec-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+    .rec-tab{padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:none;color:var(--muted);font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+    .rec-tab.active{background:rgba(197,155,45,0.1);border-color:rgba(197,155,45,0.3);color:var(--gold);}
+    .rec-panel{display:none;}
+    .rec-panel.active{display:block;}
+    .rec-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+    .rec-stat{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;text-align:center;}
+    .rec-stat .n{font-family:var(--font-display);font-size:1.5rem;color:var(--gold);}
+    .rec-stat .l{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-top:4px;}
+
     @media(max-width:900px){
       .sidebar{position:relative;width:100%;height:auto;border-right:none;border-bottom:1px solid rgba(255,255,255,0.07);}
       .admin-layout{flex-direction:column;}
@@ -155,6 +166,7 @@
       <li><button class="nav-btn" data-section="enquiries">&#128172; Enquiries</button></li>
       <li><button class="nav-btn" data-section="contact">&#9993; Contact Forms</button></li>
       <li><button class="nav-btn" data-section="messages">&#128140; Messages</button></li>
+      <li><button class="nav-btn" data-section="records">&#128196; Records</button></li>
     </ul>
     <div class="sidebar-footer">
       <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.07);text-align:center;">
@@ -252,6 +264,74 @@
       <h2 style="color:var(--ivory);margin:0 0 20px;font-family:var(--font-display);font-weight:400;">Client Messages</h2>
       <div id="messagesContainer"><p style="text-align:center;color:var(--muted);">No messages yet</p></div>
     </div>
+
+    <!-- RECORDS -->
+    <div id="records" class="section">
+      <h2 style="color:var(--ivory);margin:0 0 8px;font-family:var(--font-display);font-weight:400;">Complete Records</h2>
+      <p style="color:var(--muted);font-size:0.82rem;margin-bottom:20px;">Full archive of all clients, orders, enquiries and contact forms. Last 100 entries per category.</p>
+      <div class="rec-tabs">
+        <button class="rec-tab active" onclick="switchRecTab('rec-clients',this)">&#128100; Clients</button>
+        <button class="rec-tab" onclick="switchRecTab('rec-orders',this)">&#128722; Orders</button>
+        <button class="rec-tab" onclick="switchRecTab('rec-enquiries',this)">&#128172; Enquiries</button>
+        <button class="rec-tab" onclick="switchRecTab('rec-forms',this)">&#9993; Contact Forms</button>
+      </div>
+
+      <!-- Clients panel -->
+      <div id="rec-clients" class="rec-panel active">
+        <div class="rec-summary" id="recClientSummary"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Name</th><th>Personal Email</th><th>Brand Login</th>
+              <th>Phone</th><th>Status</th><th>Registered</th><th>Approved</th>
+            </tr></thead>
+            <tbody id="recClientsTable"><tr><td colspan="8" class="empty-cell">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Orders panel -->
+      <div id="rec-orders" class="rec-panel">
+        <div class="rec-summary" id="recOrderSummary"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Reference</th><th>Client</th><th>Email</th>
+              <th>Items</th><th>Total</th><th>Status</th><th>Date</th>
+            </tr></thead>
+            <tbody id="recOrdersTable"><tr><td colspan="8" class="empty-cell">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Enquiries panel -->
+      <div id="rec-enquiries" class="rec-panel">
+        <div class="rec-summary" id="recEnqSummary"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Client</th><th>Subject</th><th>Messages</th>
+              <th>Status</th><th>Opened</th><th>Last Update</th>
+            </tr></thead>
+            <tbody id="recEnqTable"><tr><td colspan="7" class="empty-cell">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Contact Forms panel -->
+      <div id="rec-forms" class="rec-panel">
+        <div class="rec-summary" id="recFormSummary"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Name</th><th>Email</th><th>Phone</th>
+              <th>Type</th><th>Status</th><th>Date</th>
+            </tr></thead>
+            <tbody id="recFormsTable"><tr><td colspan="7" class="empty-cell">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div><!-- /main -->
 </div><!-- /admin-layout -->
 
@@ -306,9 +386,17 @@
   function dispatch(sec) {
     const map = { overview: loadOverview, orders: loadOrders, products: loadProducts,
                   registrations: loadRegistrations, enquiries: loadEnquiries,
-                  contact: loadContactForms, messages: loadMessages };
+                  contact: loadContactForms, messages: loadMessages, records: loadRecords };
     if (map[sec]) map[sec]();
   }
+
+  /* ── Records tab switcher ─────────── */
+  window.switchRecTab = function(panelId, btn) {
+    document.querySelectorAll('.rec-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.rec-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(panelId).classList.add('active');
+  };
 
   /* ── Helpers ────────────────────────── */
   function fmtDate(iso){ return iso ? new Date(iso).toLocaleDateString('en-NG',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
@@ -1022,6 +1110,132 @@
       alert(res.data?.message || 'Error deleting product.');
     }
   };
+
+  /* ══════════════════════════════════════
+     RECORDS — full archive
+  ══════════════════════════════════════ */
+  let _records = null;
+
+  async function loadRecords() {
+    if (_records) { renderAllRecords(); return; }
+    const res = await LAApi.admin.records();
+    if (res.ok) { _records = res.data; renderAllRecords(); }
+    else {
+      document.getElementById('recClientsTable').innerHTML  = `<tr><td colspan="8" class="empty-cell">Could not load records.</td></tr>`;
+      document.getElementById('recOrdersTable').innerHTML   = `<tr><td colspan="8" class="empty-cell">Could not load records.</td></tr>`;
+      document.getElementById('recEnqTable').innerHTML      = `<tr><td colspan="7" class="empty-cell">Could not load records.</td></tr>`;
+      document.getElementById('recFormsTable').innerHTML    = `<tr><td colspan="7" class="empty-cell">Could not load records.</td></tr>`;
+    }
+  }
+
+  function renderAllRecords() {
+    if (!_records) return;
+    const clients = _records.clients      || [];
+    const orders  = _records.orders       || [];
+    const enqs    = _records.enquiries    || [];
+    const forms   = _records.contact_forms|| [];
+
+    /* ── Client summary ── */
+    const approvedC  = clients.filter(c => c.status === 'approved').length;
+    const pendingC   = clients.filter(c => c.status === 'pending').length;
+    const rejectedC  = clients.filter(c => c.status === 'rejected').length;
+    document.getElementById('recClientSummary').innerHTML = `
+      <div class="rec-stat"><div class="n">${clients.length}</div><div class="l">Total</div></div>
+      <div class="rec-stat"><div class="n" style="color:#66bb6a;">${approvedC}</div><div class="l">Approved</div></div>
+      <div class="rec-stat"><div class="n" style="color:#ffc107;">${pendingC}</div><div class="l">Pending</div></div>
+      <div class="rec-stat"><div class="n" style="color:#ef5350;">${rejectedC}</div><div class="l">Rejected</div></div>`;
+
+    document.getElementById('recClientsTable').innerHTML = clients.length ? clients.map((c, i) => {
+      const st = (c.status || 'pending').toLowerCase();
+      return `<tr>
+        <td style="color:var(--muted);font-size:0.75rem;">${i+1}</td>
+        <td style="color:var(--ivory);font-weight:500;">${e(c.name)}</td>
+        <td style="font-size:0.82rem;">${e(c.email)}</td>
+        <td style="color:var(--gold);font-size:0.82rem;">${e(c.brand_email || '—')}</td>
+        <td style="font-size:0.82rem;">${e(c.phone || 'N/A')}</td>
+        <td><span class="badge badge-${e(st)}">${e(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(c.created_at)}</td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(c.approved_at) || '—'}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="8" class="empty-cell">No clients registered yet</td></tr>`;
+
+    /* ── Order summary ── */
+    const pendingO   = orders.filter(o => o.status === 'pending').length;
+    const confirmedO = orders.filter(o => o.status === 'confirmed').length;
+    const paidO      = orders.filter(o => o.status === 'paid').length;
+    const deliveredO = orders.filter(o => o.status === 'delivered').length;
+    const totalRev   = orders.filter(o => o.status === 'paid').reduce((s, o) => s + parseFloat(o.total || 0), 0);
+    document.getElementById('recOrderSummary').innerHTML = `
+      <div class="rec-stat"><div class="n">${orders.length}</div><div class="l">Total</div></div>
+      <div class="rec-stat"><div class="n" style="color:#ffc107;">${pendingO}</div><div class="l">Pending</div></div>
+      <div class="rec-stat"><div class="n" style="color:#66bb6a;">${confirmedO}</div><div class="l">Confirmed</div></div>
+      <div class="rec-stat"><div class="n" style="color:#42a5f5;">${paidO}</div><div class="l">Paid</div></div>
+      <div class="rec-stat"><div class="n" style="color:#ab47bc;">${deliveredO}</div><div class="l">Delivered</div></div>
+      <div class="rec-stat"><div class="n" style="color:var(--gold);font-size:1rem;">₦${Math.round(totalRev).toLocaleString('en-NG')}</div><div class="l">Revenue</div></div>`;
+
+    document.getElementById('recOrdersTable').innerHTML = orders.length ? orders.map((o, i) => {
+      const st    = (o.status || 'pending').toLowerCase();
+      const items = o.items || o.order_items || [];
+      const qty   = items.reduce((s, it) => s + (it.quantity || it.qty || 1), 0);
+      return `<tr>
+        <td style="color:var(--muted);font-size:0.75rem;">${i+1}</td>
+        <td style="font-family:monospace;color:var(--gold);font-size:0.78rem;">${e(o.reference || o.id)}</td>
+        <td style="color:var(--ivory);">${e(o.client_name || 'Guest')}</td>
+        <td style="font-size:0.8rem;">${e(o.client_email || '—')}</td>
+        <td style="text-align:center;">${qty}</td>
+        <td style="color:var(--gold);">${fmtMoney(o.total)}</td>
+        <td><span class="badge badge-${e(st)}">${e(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(o.created_at)}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="8" class="empty-cell">No orders yet</td></tr>`;
+
+    /* ── Enquiry summary ── */
+    const openE       = enqs.filter(x => x.status === 'open').length;
+    const inProgE     = enqs.filter(x => x.status === 'in-progress').length;
+    const closedE     = enqs.filter(x => x.status === 'closed').length;
+    document.getElementById('recEnqSummary').innerHTML = `
+      <div class="rec-stat"><div class="n">${enqs.length}</div><div class="l">Total</div></div>
+      <div class="rec-stat"><div class="n" style="color:#42a5f5;">${openE}</div><div class="l">Open</div></div>
+      <div class="rec-stat"><div class="n" style="color:#ffa726;">${inProgE}</div><div class="l">In Progress</div></div>
+      <div class="rec-stat"><div class="n" style="color:#66bb6a;">${closedE}</div><div class="l">Closed</div></div>`;
+
+    document.getElementById('recEnqTable').innerHTML = enqs.length ? enqs.map((enq, i) => {
+      const st  = (enq.status || 'open').toLowerCase();
+      const msgs = (enq.messages || []).length;
+      return `<tr>
+        <td style="color:var(--muted);font-size:0.75rem;">${i+1}</td>
+        <td style="color:var(--ivory);">${e(enq.client_name || 'N/A')}</td>
+        <td>${e(enq.subject || 'N/A')}</td>
+        <td style="text-align:center;color:var(--gold);">${msgs}</td>
+        <td><span class="badge badge-${e(st)}">${e(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(enq.created_at)}</td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(enq.updated_at)}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="7" class="empty-cell">No enquiries yet</td></tr>`;
+
+    /* ── Contact Form summary ── */
+    const recvF   = forms.filter(x => x.status === 'received').length;
+    const revwF   = forms.filter(x => x.status === 'reviewed').length;
+    const respF   = forms.filter(x => x.status === 'responded').length;
+    document.getElementById('recFormSummary').innerHTML = `
+      <div class="rec-stat"><div class="n">${forms.length}</div><div class="l">Total</div></div>
+      <div class="rec-stat"><div class="n" style="color:#ab47bc;">${recvF}</div><div class="l">Received</div></div>
+      <div class="rec-stat"><div class="n" style="color:#ffa726;">${revwF}</div><div class="l">Reviewed</div></div>
+      <div class="rec-stat"><div class="n" style="color:#66bb6a;">${respF}</div><div class="l">Responded</div></div>`;
+
+    document.getElementById('recFormsTable').innerHTML = forms.length ? forms.map((f, i) => {
+      const st = (f.status || 'received').toLowerCase();
+      return `<tr>
+        <td style="color:var(--muted);font-size:0.75rem;">${i+1}</td>
+        <td style="color:var(--ivory);">${e(f.name || 'N/A')}</td>
+        <td style="font-size:0.82rem;">${e(f.email || 'N/A')}</td>
+        <td style="font-size:0.82rem;">${e(f.phone || 'N/A')}</td>
+        <td>${e(f.enquiry_type || 'N/A')}</td>
+        <td><span class="badge badge-${e(st)}">${e(st)}</span></td>
+        <td style="color:var(--muted);font-size:0.78rem;">${fmtDate(f.created_at)}</td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="7" class="empty-cell">No submissions yet</td></tr>`;
+  }
 
   /* ══════════════════════════════════════
      LOGOUT
