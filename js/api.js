@@ -11,7 +11,7 @@ const _metaApi = document.querySelector('meta[name="api-base"]')?.content;
 const _isLocal = (_host === '127.0.0.1' || _host === 'localhost') &&
                  ['5500','5501','5502','8080','3000','4000','8000'].includes(_port);
 const API_BASE = _metaApi ||
-  (_isLocal ? 'http://127.0.0.1:8000/api' : 'https://la-couture-production.up.railway.app/api');
+  (_isLocal ? 'http://127.0.0.1:8000/api' : 'https://la-couture-backend.up.railway.app/api');
 
 const LAApi = (() => {
   function getToken() {
