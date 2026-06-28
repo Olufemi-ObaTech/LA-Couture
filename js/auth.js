@@ -5,8 +5,10 @@
 
 class AuthSystem {
   static getCurrentUser() {
-    const u = localStorage.getItem('la_couture_current_user');
-    return u ? JSON.parse(u) : null;
+    try {
+      const u = localStorage.getItem('la_couture_current_user');
+      return u ? JSON.parse(u) : null;
+    } catch { return null; }
   }
 
   static isAuthenticated() {
@@ -73,7 +75,7 @@ class FormSecurity {
 
   static checkRateLimit(key, maxAttempts, windowMs) {
     const now = Date.now();
-    const stored = JSON.parse(localStorage.getItem('la_rl_' + key) || '[]');
+    let stored; try { stored = JSON.parse(localStorage.getItem('la_rl_' + key) || '[]'); } catch { stored = []; }
     const recent = stored.filter(t => now - t < windowMs);
     if (recent.length >= maxAttempts) {
       const oldest = Math.min(...recent);

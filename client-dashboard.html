@@ -323,7 +323,11 @@
   const user = AuthSystem.getCurrentUser();
   if (!user || user.role !== 'client') {
     window.location.href = 'client-login.html';
+    return;
   }
+
+  /* ── XSS escape helper ───────────────── */
+  const esc = window.escapeHtml || (s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'));
 
   /* ── Profile ────────────────────────── */
   document.getElementById('cName').textContent  = user.name  || '—';
@@ -547,12 +551,12 @@
       return;
     }
     const sorted = [...all].sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
-    container.innerHTML = sorted.map(e => `
-      <div class="enquiry-item" onclick="openEnquiry(${e.id})">
-        <h4>${e.subject}</h4>
-        <p><strong>Category:</strong> ${e.category}</p>
-        <p><strong>Status:</strong> <span style="color:var(--gold);">${(e.status || 'open').toUpperCase()}</span></p>
-        <p style="color:var(--muted);font-size:0.78rem;">${fmtDate(e.created_at || e.createdAt)}</p>
+    container.innerHTML = sorted.map(enq => `
+      <div class="enquiry-item" onclick="openEnquiry(${enq.id})">
+        <h4>${esc(enq.subject)}</h4>
+        <p><strong>Category:</strong> ${esc(enq.category)}</p>
+        <p><strong>Status:</strong> <span style="color:var(--gold);">${esc((enq.status || 'open').toUpperCase())}</span></p>
+        <p style="color:var(--muted);font-size:0.78rem;">${fmtDate(enq.created_at || enq.createdAt)}</p>
       </div>`).join('');
   }
 
@@ -565,14 +569,14 @@
     if (!enq) return;
     const msgs = (enq.messages || []).map(m => `
       <div class="msg-item">
-        <div class="msg-sender">${m.sender_name || m.sender || 'Unknown'}</div>
-        <div class="msg-text">${m.message || m.text || ''}</div>
+        <div class="msg-sender">${esc(m.sender_name || m.sender || 'Unknown')}</div>
+        <div class="msg-text">${esc(m.message || m.text || '')}</div>
         <div class="msg-time">${fmtDateTime(m.created_at || m.timestamp)}</div>
       </div>`).join('') || '<p style="color:var(--muted);text-align:center;padding:20px 0;">No messages yet.</p>';
     document.getElementById('enqDetail').innerHTML = `
-      <h3 style="color:var(--ivory);margin:0 0 16px;font-family:var(--font-display);font-weight:400;">${enq.subject}</h3>
-      <p style="color:var(--text);margin-bottom:6px;"><strong>Category:</strong> ${enq.category}</p>
-      <p style="color:var(--text);margin-bottom:20px;"><strong>Status:</strong> <span style="color:var(--gold);">${(enq.status || 'open').toUpperCase()}</span></p>
+      <h3 style="color:var(--ivory);margin:0 0 16px;font-family:var(--font-display);font-weight:400;">${esc(enq.subject)}</h3>
+      <p style="color:var(--text);margin-bottom:6px;"><strong>Category:</strong> ${esc(enq.category)}</p>
+      <p style="color:var(--text);margin-bottom:20px;"><strong>Status:</strong> <span style="color:var(--gold);">${esc((enq.status || 'open').toUpperCase())}</span></p>
       <div style="max-height:240px;overflow-y:auto;">${msgs}</div>
       <div class="form-group" style="margin-top:20px;">
         <label>Your Reply</label>
@@ -614,8 +618,8 @@
     }
     container.innerHTML = all.map(m => `
       <div class="msg-item">
-        <div class="msg-sender">${m.sender_name || m.sender || 'Unknown'} &mdash; Re: ${m.subject}</div>
-        <div class="msg-text">${m.message || m.text || ''}</div>
+        <div class="msg-sender">${esc(m.sender_name || m.sender || 'Unknown')} &mdash; Re: ${esc(m.subject)}</div>
+        <div class="msg-text">${esc(m.message || m.text || '')}</div>
         <div class="msg-time">${fmtDateTime(m.created_at || m.timestamp)}</div>
       </div>`).join('');
   }

@@ -206,18 +206,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = AuthSystem.getCurrentUser();
     if (!user) return;
 
-    const isAdmin    = user.role === 'admin';
-    const dashUrl    = isAdmin ? 'admin-dashboard.html' : 'client-dashboard.html';
-    const initials   = (user.name || user.email || 'U')
+    const isAdmin     = user.role === 'admin';
+    const dashUrl     = isAdmin ? 'admin-dashboard.html' : 'client-dashboard.html';
+    const esc         = typeof escapeHtml === 'function' ? escapeHtml : (s => String(s || ''));
+    const rawName     = user.name || user.email || (isAdmin ? 'Admin' : 'Client');
+    const rawInitials = (user.name || user.email || 'U')
                          .split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-    const displayName = user.name || user.email || (isAdmin ? 'Admin' : 'Client');
+    const initials    = esc(rawInitials);
+    const displayName = esc(rawName);
     const roleLabel   = isAdmin ? 'Administrator' : 'Client';
 
     // Build pill HTML
     const pillHTML = `
       <div class="user-pill" id="userPill" role="button" aria-haspopup="true" aria-expanded="false" tabindex="0">
         <div class="user-pill-avatar">${initials}</div>
-        <span class="user-pill-name">${displayName.split(' ')[0]}</span>
+        <span class="user-pill-name">${esc(rawName.split(' ')[0])}</span>
         <svg class="user-pill-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         <div class="user-pill-dropdown" role="menu">
           <div class="user-pill-header">

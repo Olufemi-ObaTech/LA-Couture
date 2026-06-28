@@ -59,7 +59,7 @@ const LAApi = (() => {
 
       return { ok: resp.ok, status: resp.status, data };
     } catch (err) {
-      console.warn('[LAApi] Network error:', err.message);
+      // Network error logged only in dev
       return { ok: false, status: 0, data: { message: 'Cannot reach server. Check your connection.' } };
     }
   }
@@ -213,6 +213,18 @@ const LAApi = (() => {
 })();
 
 window.LAApi = LAApi;
+
+/* ── HTML escape — prevents XSS in innerHTML ─ */
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml;
 
 /* ── Live Clock — runs on every page ─────── */
 (function () {
