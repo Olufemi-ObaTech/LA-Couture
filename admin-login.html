@@ -3,158 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Login — L.A. Couture</title>
+  <title>Staff Login — L.A. Couture</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .auth-container {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #09080b 0%, #1a1512 100%);
-      padding: 20px;
-    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-sans);background:linear-gradient(135deg,#09080b 0%,#1a1512 100%);min-height:100vh;}
+    .auth-container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .auth-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:44px 48px;max-width:440px;width:100%;backdrop-filter:blur(12px);}
+    .auth-logo{text-align:center;margin-bottom:28px;}
+    .auth-logo img{width:72px;height:72px;border-radius:14px;object-fit:cover;margin-bottom:12px;}
+    .auth-logo h1{font-family:var(--font-display);font-size:1.35rem;color:var(--ivory);font-weight:400;margin-bottom:4px;}
+    .auth-logo p{color:var(--muted);font-size:0.82rem;}
 
-    .auth-card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 48px;
-      max-width: 420px;
-      width: 100%;
-      backdrop-filter: blur(10px);
-    }
+    /* Role tabs */
+    .role-tabs{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid rgba(255,255,255,0.12);border-radius:12px;overflow:hidden;margin-bottom:28px;}
+    .role-tab{padding:11px;text-align:center;font-size:0.82rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;border:none;background:rgba(255,255,255,0.03);color:var(--muted);transition:all 0.2s;}
+    .role-tab.active-admin{background:linear-gradient(135deg,var(--gold) 0%,#a8751a 100%);color:#09080b;}
+    .role-tab.active-cs{background:linear-gradient(135deg,#28a745,#1e7e34);color:#fff;}
+    .role-tab:first-child{border-right:1px solid rgba(255,255,255,0.12);}
 
-    .auth-logo {
-      text-align: center;
-      margin-bottom: 48px;
-    }
+    /* Form */
+    .form-group{margin-bottom:20px;}
+    .form-group label{display:block;color:var(--muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:7px;}
+    .form-group input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:var(--ivory);font-size:0.95rem;transition:all 0.2s;outline:none;}
+    .form-group input::placeholder{color:rgba(248,244,239,0.35);}
 
-    .auth-logo img {
-      width: 80px;
-      height: auto;
-      margin-bottom: 16px;
-    }
+    /* Gold focus (admin) */
+    body.mode-admin .form-group input:focus{border-color:var(--gold);}
+    /* Green focus (cs) */
+    body.mode-cs .form-group input:focus{border-color:#4caf50;}
 
-    .auth-logo h1 {
-      color: var(--ivory);
-      font-size: 1.4rem;
-      margin: 0;
-    }
+    .auth-btn{width:100%;padding:13px;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.25s;text-transform:uppercase;letter-spacing:0.1em;}
+    .auth-btn:hover{transform:translateY(-1px);}
+    .auth-btn:disabled{opacity:0.55;cursor:not-allowed;transform:none;}
+    .btn-admin{background:linear-gradient(135deg,var(--gold) 0%,#a8751a 100%);color:#09080b;}
+    .btn-admin:hover{box-shadow:0 8px 24px rgba(197,155,45,0.35);}
+    .btn-cs{background:linear-gradient(135deg,#28a745,#1e7e34);color:#fff;}
+    .btn-cs:hover{box-shadow:0 8px 24px rgba(40,167,69,0.35);}
 
-    .auth-logo p {
-      color: var(--muted);
-      font-size: 0.85rem;
-      margin: 8px 0 0 0;
-    }
+    .auth-error{background:rgba(255,69,69,0.1);border:1px solid rgba(255,69,69,0.3);color:#ff6b6b;padding:12px 16px;border-radius:8px;margin-bottom:20px;display:none;font-size:0.88rem;line-height:1.5;}
+    .back-link{text-align:center;margin-top:22px;}
+    .back-link a{color:var(--muted);text-decoration:none;font-size:0.82rem;transition:color 0.2s;}
+    .back-link a:hover{color:var(--gold);}
+    .divider{text-align:center;margin-top:14px;font-size:0.8rem;color:rgba(248,244,239,0.3);}
+    .divider a{color:var(--gold);text-decoration:none;}
+    .divider a:hover{text-decoration:underline;}
 
-    .form-group {
-      margin-bottom: 24px;
-    }
-
-    .form-group label {
-      display: block;
-      color: var(--text);
-      font-size: 0.85rem;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 12px 16px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--ivory);
-      font-size: 1rem;
-      transition: all 0.3s ease;
-    }
-
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--gold);
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .form-group input::placeholder {
-      color: rgba(248, 244, 239, 0.4);
-    }
-
-    .auth-btn {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, var(--gold) 0%, #a8751a 100%);
-      color: var(--navy);
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    .auth-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(197, 155, 45, 0.3);
-    }
-
-    .auth-error {
-      background: rgba(255, 69, 69, 0.1);
-      border: 1px solid rgba(255, 69, 69, 0.3);
-      color: #ff6b6b;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-      display: none;
-      font-size: 0.9rem;
-    }
-
-    .back-link {
-      text-align: center;
-      margin-top: 24px;
-    }
-
-    .back-link a {
-      color: var(--gold);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color 0.3s ease;
-    }
-
-    .back-link a:hover {
-      color: #d4af37;
-    }
+    /* Role hint */
+    .role-hint{font-size:0.78rem;color:rgba(248,244,239,0.4);text-align:center;margin-bottom:20px;}
+    .role-hint span{color:var(--gold);}
   </style>
 </head>
-<body style="background: linear-gradient(135deg, #09080b 0%, #1a1512 100%);">
-  <!-- TOPBAR -->
+<body class="mode-admin" style="background:linear-gradient(135deg,#09080b 0%,#1a1512 100%);">
+
   <div class="topbar" style="padding:6px 24px;">
     <div class="topbar-inner">
       <span id="clock-date"></span>
       <span id="clock-time"></span>
     </div>
   </div>
+
   <div class="auth-container">
     <div class="auth-card">
+
       <div class="auth-logo">
         <img src="img/logo2.jpg" alt="L.A. Couture">
-        <h1>Admin Portal</h1>
+        <h1>Staff Portal</h1>
         <p>L.A. Couture Management</p>
       </div>
 
-      <form id="adminLoginForm">
+      <!-- Role Tabs -->
+      <div class="role-tabs">
+        <button class="role-tab active-admin" id="tabAdmin" onclick="switchRole('admin')">&#128081; Admin</button>
+        <button class="role-tab" id="tabCS" onclick="switchRole('cs')">&#127881; Customer Service</button>
+      </div>
+
+      <p class="role-hint" id="roleHint">Signing in as <span>Admin</span></p>
+
+      <form id="staffLoginForm">
         <div class="auth-error" id="errorMsg"></div>
 
         <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" placeholder="admin@lacouture.com" required>
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="admin@lacouture.com" required autocomplete="username">
         </div>
 
         <div class="form-group">
@@ -162,55 +96,102 @@
           <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
         </div>
 
-        <button type="submit" class="auth-btn">Sign In</button>
+        <button type="submit" class="auth-btn btn-admin" id="loginBtn">Sign In as Admin</button>
       </form>
 
+      <div class="divider" style="margin-top:18px;">
+        Client? <a href="client-login.html">Client Login →</a>
+      </div>
       <div class="back-link">
         <a href="index.html">← Back to Home</a>
       </div>
+
     </div>
   </div>
 
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script>
-    const form = document.getElementById('adminLoginForm');
-    const errorMsg = document.getElementById('errorMsg');
+  (function () {
+    'use strict';
 
-    form.addEventListener('submit', async function(e) {
+    let currentRole = 'admin';
+
+    // Redirect if already logged in
+    const u = (function() {
+      try { const s = localStorage.getItem('la_couture_current_user'); return s ? JSON.parse(s) : null; } catch { return null; }
+    })();
+    if (u && u.role === 'admin') { window.location.href = 'admin-dashboard.html'; return; }
+    if (u && u.role === 'cs')    { window.location.href = 'cs-dashboard.html'; return; }
+
+    window.switchRole = function(role) {
+      currentRole = role;
+      const tabAdmin  = document.getElementById('tabAdmin');
+      const tabCS     = document.getElementById('tabCS');
+      const loginBtn  = document.getElementById('loginBtn');
+      const emailIn   = document.getElementById('email');
+      const hintSpan  = document.querySelector('#roleHint span');
+      const errorMsg  = document.getElementById('errorMsg');
+      errorMsg.style.display = 'none';
+
+      if (role === 'admin') {
+        tabAdmin.className = 'role-tab active-admin';
+        tabCS.className    = 'role-tab';
+        loginBtn.className = 'auth-btn btn-admin';
+        loginBtn.textContent = 'Sign In as Admin';
+        emailIn.placeholder  = 'admin@lacouture.com';
+        hintSpan.textContent = 'Admin';
+        document.body.className = 'mode-admin';
+      } else {
+        tabCS.className    = 'role-tab active-cs';
+        tabAdmin.className = 'role-tab';
+        loginBtn.className = 'auth-btn btn-cs';
+        loginBtn.textContent = 'Sign In as Customer Service';
+        emailIn.placeholder  = 'cs@lacouture.com';
+        hintSpan.textContent = 'Customer Service';
+        document.body.className = 'mode-cs';
+      }
+    };
+
+    const form     = document.getElementById('staffLoginForm');
+    const errorMsg = document.getElementById('errorMsg');
+    const loginBtn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      const btn = form.querySelector('.auth-btn');
-      btn.disabled = true;
-      btn.textContent = 'Signing in…';
+      loginBtn.disabled    = true;
+      loginBtn.textContent = 'Signing in…';
       errorMsg.style.display = 'none';
 
       const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
-      // Rate limit client-side
-      const rl = FormSecurity.checkRateLimit('admin-login', 5, 5 * 60 * 1000);
-      if (!rl.allowed) {
-        errorMsg.textContent = `Too many attempts. Try again in ${rl.waitSecs}s.`;
-        errorMsg.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Sign In';
-        return;
+      const rlKey = currentRole + '-login';
+      if (typeof FormSecurity !== 'undefined') {
+        const rl = FormSecurity.checkRateLimit(rlKey, 5, 5 * 60 * 1000);
+        if (!rl.allowed) {
+          errorMsg.textContent   = `Too many attempts. Try again in ${rl.waitSecs}s.`;
+          errorMsg.style.display = 'block';
+          loginBtn.disabled    = false;
+          loginBtn.textContent = currentRole === 'admin' ? 'Sign In as Admin' : 'Sign In as Customer Service';
+          return;
+        }
       }
 
-      try {
-        const res = await LAApi.auth.adminLogin(email, password);
-        if (res.ok) {
-          window.location.href = 'admin-dashboard.html';
-        } else {
-          errorMsg.textContent = res.data?.message || 'Invalid credentials.';
-          errorMsg.style.display = 'block';
-          btn.disabled = false; btn.textContent = 'Sign In';
-        }
-      } catch (err) {
-        errorMsg.textContent = 'Cannot reach server. Check your connection.';
+      const res = currentRole === 'admin'
+        ? await LAApi.auth.adminLogin(email, password)
+        : await LAApi.auth.csLogin(email, password);
+
+      if (res.ok) {
+        window.location.href = currentRole === 'admin' ? 'admin-dashboard.html' : 'cs-dashboard.html';
+      } else {
+        errorMsg.textContent   = res.data?.message || 'Invalid credentials. Please try again.';
         errorMsg.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Sign In';
+        loginBtn.disabled    = false;
+        loginBtn.textContent = currentRole === 'admin' ? 'Sign In as Admin' : 'Sign In as Customer Service';
       }
     });
+  })();
   </script>
 </body>
 </html>

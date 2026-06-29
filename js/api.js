@@ -68,7 +68,7 @@ const LAApi = (() => {
         await new Promise(r => setTimeout(r, 2500));
         return request(method, path, body, requiresAuth, _attempt + 1);
       }
-      return { ok: false, status: 0, data: { message: 'Server is waking up — please try again in a moment.' } };
+      return { ok: false, status: 0, data: { message: 'Cannot connect to server after 3 attempts. Please wait 30 seconds and try again.' } };
     }
   }
 
