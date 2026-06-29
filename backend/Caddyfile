@@ -1,0 +1,8 @@
+{
+    admin off
+    auto_https off
+}
+
+:{$PORT} {
+    reverse_proxy localhost:8001
+}
